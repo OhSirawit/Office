@@ -427,7 +427,8 @@
                 document.getElementById('previewName').innerText = fileName;
                 document.getElementById('previewSize').innerText = `~${Math.round(base64Image.length * 0.75 / 1024)} KB`;
                 
-                scanReceipt(dataUrl); 
+                // ส่งภาพที่ถูกลดขนาดแล้วไปสแกน ป้องกันมือถือค้าง/แรมไม่พอ
+                scanReceipt(base64Image); 
             };
             img.src = dataUrl;
         }
@@ -442,6 +443,7 @@
         async function scanReceipt(src) {
             const statusBox = document.getElementById('ocrStatus');
             statusBox.innerHTML = '<span class="spinner inline-block border-[#c05640] border-t-transparent w-3 h-3 mr-1 align-middle"></span> กำลังวิเคราะห์ยอดเงินจากใบเสร็จ...';
+            statusBox.className = "mt-2 text-[11px] font-bold text-center bg-white py-1.5 rounded-md border border-gray-100 text-[#c05640]";
             
             try {
                 // อัปเดตคำสั่ง Tesseract.js สำหรับเวอร์ชัน 4+ 
@@ -457,7 +459,10 @@
                     }
                 );
 
-                const fuelMatch = text.match(/PT\s*MAX\s*(LPG|E20|แก๊สโซฮอล์ 95|NGV|แก๊สโซฮอล์\s*95)/i);
+                // สร้างตัวแปรใหม่มารับค่า ป้องกัน Error ของ Javascript
+                let processText = text; 
+
+                const fuelMatch = processText.match(/PT\s*MAX\s*(LPG|E20|แก๊สโซฮอล์ 95|NGV|แก๊สโซฮอล์\s*95)/i);
                 if (fuelMatch && document.getElementById('category').value !== 'วิ่งงานรถ') {
                     document.getElementById('category').value = 'เชื้อเพลิง'; 
                     toggleFields();
@@ -470,12 +475,12 @@
 
                 let finalAmt = 0;
                 
-                if(text.includes('หนึ่งพันห้าร้อย')) finalAmt = 1500;
-                else if(text.includes('สามร้อยเก้าสิบเอ็ด')) finalAmt = 391.40;
+                if(processText.includes('หนึ่งพันห้าร้อย')) finalAmt = 1500;
+                else if(processText.includes('สามร้อยเก้าสิบเอ็ด')) finalAmt = 391.40;
 
                 if (finalAmt === 0) {
-                    text = text.replace(/,/g, ''); 
-                    const decMatch = text.match(/\d+\.\d{2}/g);
+                    processText = processText.replace(/,/g, ''); // แก้บั๊กลบลูกน้ำ
+                    const decMatch = processText.match(/\d+\.\d{2}/g);
                     if (decMatch) {
                         const nums = decMatch.map(Number).filter(n => n > 0 && n !== 5278 && n !== 5279);
                         nums.sort((a,b) => b-a);
@@ -494,7 +499,7 @@
                     }
                 }
 
-                const plateMatch = text.match(/หมายเหตุ\s*2\s*:\s*([^\s]+)\s*กรุงเทพ/);
+                const plateMatch = processText.match(/หมายเหตุ\s*2\s*:\s*([^\s]+)\s*กรุงเทพ/);
                 if (plateMatch && document.getElementById('details').value === '') {
                    document.getElementById('details').value = `PT MAX ${fuelMatch ? fuelMatch[1] : ''} • ${plateMatch[1]} กรุงเทพมหานคร`;
                 }
@@ -503,15 +508,15 @@
                     if(document.getElementById('category').value === 'เชื้อเพลิง') document.getElementById('fuelAmount').value = finalAmt;
                     else document.getElementById('amount').value = finalAmt;
                     statusBox.innerHTML = `<i class="fa-solid fa-check text-green-500"></i> พบยอด: ฿${finalAmt.toLocaleString()}`;
-                    statusBox.className = "mt-2 text-[11px] font-bold text-center bg-green-50 py-1 rounded-md border border-green-100 text-green-700";
+                    statusBox.className = "mt-2 text-[12px] font-bold text-center bg-green-50 py-1.5 rounded-md border border-green-100 text-green-700";
                 } else {
                     statusBox.innerHTML = 'ไม่พบยอดชัดเจน กรุณากรอกเอง';
-                    statusBox.className = "mt-2 text-[11px] font-medium text-center bg-gray-50 py-1 rounded-md border border-gray-100 text-gray-500";
+                    statusBox.className = "mt-2 text-[12px] font-medium text-center bg-red-50 py-1.5 rounded-md border border-red-100 text-red-500";
                 }
             } catch (e) {
                 console.error(e);
                 statusBox.innerHTML = 'สแกนขัดข้อง กรุณากรอกเอง';
-                statusBox.className = "mt-2 text-[11px] font-medium text-center bg-red-50 py-1 rounded-md border border-red-100 text-red-500";
+                statusBox.className = "mt-2 text-[12px] font-medium text-center bg-red-50 py-1.5 rounded-md border border-red-100 text-red-500";
             }
         }
 
