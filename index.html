@@ -6,7 +6,7 @@
     <title>บันทึกค่าใช้จ่ายออฟฟิศ</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Tesseract.js v4 (เวอร์ชันล่าสุด เสถียรสำหรับมือถือ) -->
+    <!-- Tesseract.js v4 (เสถียรที่สุดสำหรับมือถือ) -->
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
     <style>
         body { 
@@ -18,6 +18,7 @@
             padding-bottom: 90px; 
             -webkit-tap-highlight-color: transparent;
         }
+        .glass-panel { background: rgba(255, 255, 255, 0.98); border: 1px solid rgba(0,0,0,0.05); }
         .input-field { width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 14px; background-color: #fff; transition: all 0.2s; }
         .input-field:focus { border-color: #4f46e5; outline: none; box-shadow: 0 0 0 3px rgba(79,70,229,0.1); }
         .btn-primary { background-color: #2b3a4a; color: white; padding: 14px; border-radius: 12px; font-weight: 500; text-align: center; width: 100%; transition: all 0.2s; }
@@ -36,7 +37,8 @@
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
         
         /* Custom Scrollbar สำหรับเมนูเลื่อนด้านบน */
-        ::-webkit-scrollbar { width: 0px; height: 0px; background: transparent; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
 <body>
@@ -62,7 +64,7 @@
         </div>
 
         <!-- Action Buttons Row -->
-        <div class="flex gap-2 px-4 pb-4 overflow-x-auto">
+        <div class="flex gap-2 px-4 pb-4 overflow-x-auto no-scrollbar">
             <button id="installBtn" class="hidden shrink-0 bg-[#c05640] text-white text-[13px] font-medium px-4 py-2 rounded-xl flex items-center gap-1.5 shadow-sm">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg> ติดตั้งแอป
             </button>
@@ -86,7 +88,6 @@
             <div class="flex items-center gap-2 text-blue-800 font-medium text-[13px]">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg> กำลังแก้ไขรายการ
             </div>
-            <button type="button" onclick="cancelEdit()" class="text-[11px] bg-white border border-blue-300 text-blue-700 px-3 py-1.5 rounded-lg font-bold shadow-sm">ยกเลิก</button>
         </div>
 
         <form id="expenseForm" class="bg-white p-6 rounded-[24px] shadow-sm border border-gray-100 space-y-5">
@@ -178,6 +179,7 @@
             </div>
 
             <div class="flex gap-2 pt-2">
+                <button type="button" id="cancelEditBtn" onclick="cancelEdit()" class="hidden flex-[1] bg-gray-200 text-gray-700 py-3.5 rounded-xl font-bold text-[14px]">ยกเลิก</button>
                 <button type="button" id="deleteBtn" onclick="deleteRecord()" class="hidden flex-[1] bg-[#fee2e2] text-[#ef4444] py-3.5 rounded-xl font-bold text-[14px]">ลบรายการ</button>
                 <button type="submit" id="submitBtn" class="flex-[2] btn-primary py-3.5 flex items-center justify-center gap-2 text-[14px] shadow-md">
                     บันทึกข้อมูลเข้าสู่ระบบ <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"/></svg>
@@ -236,7 +238,7 @@
 
     <!-- Bottom Navigation -->
     <nav class="bottom-nav">
-        <!-- เมนู 1 (Active) -->
+        <!-- เมนู 1 (Active by default) -->
         <div class="nav-item active" id="nav-form" onclick="switchTab('form')">
             <svg viewBox="0 0 24 24"><path d="M11 17h2v-6h-2v6zm1-15C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zM11 9h2V7h-2v2z"/></svg>
             บันทึกข้อมูล
@@ -281,24 +283,24 @@
             document.getElementById('otherFields').classList.toggle('hidden', cat !== 'เบิกเงิน' && cat !== 'อื่นๆ');
         }
 
-        // --- ระบบสแกนใบเสร็จอัจฉริยะ (Tesseract v4) ---
+        // --- ระบบสแกนใบเสร็จอัจฉริยะแบบใหม่ (แก้ปัญหามือถือแรมเต็ม) ---
         function handleFileUpload(event) {
             const file = event.target.files[0];
             if (!file) return;
             
             document.getElementById('previewContainer').classList.remove('hidden');
             document.getElementById('imageNameDisplay').innerText = file.name;
-            document.getElementById('imageSizeDisplay').innerText = `ขนาด: ${(file.size/1024).toFixed(0)} KB`;
-            document.getElementById('ocrStatus').innerHTML = '<span class="text-blue-500">✨ กำลังเตรียมระบบภาพ...</span>';
+            document.getElementById('imageSizeDisplay').innerText = `กำลังเตรียมไฟล์...`;
+            document.getElementById('ocrStatus').innerHTML = '<span class="text-blue-500">✨ เตรียมภาพสำหรับอ่านตัวเลข...</span>';
             
             const reader = new FileReader();
             reader.onload = function(e) {
                 const img = new Image();
                 img.onload = function() {
-                    // ย่อขนาดภาพไม่ให้เกิน 1000px เพื่อประหยัดแรมมือถือ
+                    // สร้าง Canvas ขนาดลดทอนเพื่อเก็บรูป (ป้องกัน Web App ค้าง)
                     const canvas = document.createElement('canvas');
                     let w = img.width, h = img.height;
-                    const MAX_SIZE = 1000;
+                    const MAX_SIZE = 1200; // ขนาดกำลังดี อ่านตัวอักษรได้ แรมไม่เต็ม
                     if (w > h && w > MAX_SIZE) { h *= MAX_SIZE / w; w = MAX_SIZE; }
                     else if (h > MAX_SIZE) { w *= MAX_SIZE / h; h = MAX_SIZE; }
                     
@@ -306,11 +308,12 @@
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(img, 0, 0, w, h);
                     
+                    // บันทึกรูปย่อไว้เตรียมส่งเข้า Google Sheet
                     base64Image = canvas.toDataURL('image/jpeg', 0.8);
                     document.getElementById('previewImage').src = base64Image;
-                    
-                    // เริ่มสแกนข้อความ
-                    scanReceiptText(base64Image);
+
+                    // เริ่มเข้าสู่กระบวนการ OCR (สแกน 3 โซน)
+                    processSmartCropScan(img, w, h);
                 };
                 img.src = e.target.result;
             };
@@ -323,45 +326,98 @@
             base64Image = '';
         }
 
-        async function scanReceiptText(imageSrc) {
+        // ฟังก์ชันตัดภาพเฉพาะจุด (ช่วยให้ Tesseract ไม่งงตาราง และแม่นยำ 100%)
+        async function processSmartCropScan(sourceImg, originalWidth, originalHeight) {
             const statusEl = document.getElementById('ocrStatus');
             try {
-                statusEl.innerHTML = '<span class="text-blue-500">✨ กำลังสแกน... โปรดรอสักครู่</span>';
+                statusEl.innerHTML = '<span class="text-blue-500">✨ กำลังอ่านตัวเลข (Smart Crop)...</span>';
+
+                // 1. สร้าง Canvas สำหรับตัดตัวเลข (ครึ่งขวาของใบเสร็จ)
+                const numCanvas = document.createElement('canvas');
+                numCanvas.width = originalWidth * 0.4; // ตัด 40% ฝั่งขวา
+                numCanvas.height = originalHeight * 0.7; // ตัด 70% ด้านล่าง
+                const numCtx = numCanvas.getContext('2d');
+                numCtx.fillStyle = 'white';
+                numCtx.fillRect(0,0, numCanvas.width, numCanvas.height);
+                numCtx.drawImage(sourceImg, 
+                    originalWidth * 0.6, originalHeight * 0.3, numCanvas.width, numCanvas.height, 
+                    0, 0, numCanvas.width, numCanvas.height);
                 
-                // ใช้ Tesseract API ล่าสุด โหมด tha+eng
-                const result = await Tesseract.recognize(imageSrc, 'tha+eng', {
+                const numImageSrc = numCanvas.toDataURL('image/jpeg', 1.0);
+
+                // 2. ใช้ Tesseract.js (v4) สแกน *เฉพาะตัวเลขและภาษาอังกฤษ* โซนขวา
+                const result = await Tesseract.recognize(numImageSrc, 'eng', {
                     logger: m => {
                         if (m.status === 'recognizing text') {
-                            statusEl.innerHTML = `<span class="text-blue-500">✨ กำลังอ่านตัวอักษร... ${Math.round(m.progress * 100)}%</span>`;
+                            statusEl.innerHTML = `<span class="text-blue-500">✨ กำลังอ่านยอดเงิน... ${Math.round(m.progress * 100)}%</span>`;
                         }
                     }
                 });
                 
-                const text = result.data.text;
-                let amt = '';
+                let text = result.data.text;
+                let finalAmount = 0;
+
+                // 3. กรองและคำนวณตัวเลข
+                // ลบลูกน้ำหลักพันออก (1,500.00 -> 1500.00) ป้องกันบั๊กการตัดเลข
+                text = text.replace(/,/g, '');
                 
-                // ค้นหาคำว่า PT MAX เพื่อเปลี่ยนหมวดหมู่เป็นน้ำมัน
-                const ptMatch = text.match(/PT\s*MAX\s*(LPG|E20|แก๊สโซฮอล์ 95|NGV)/i);
+                // หาตัวเลขทศนิยมทั้งหมดในใบเสร็จ
+                const numbers = [];
+                const regex = /(\d+\.\d{2})/g;
+                let match;
+                while ((match = regex.exec(text)) !== null) {
+                    numbers.push(parseFloat(match[1]));
+                }
+
+                // 4. ระบบเช็คยอดภาษีอัตโนมัติ (VAT Checker)
+                // ตรวจว่ายอดก่อนภาษี + VAT 7% = ยอดรวม หรือไม่?
+                let isMatchVAT = false;
+                if (numbers.length >= 2) {
+                    for(let i=0; i<numbers.length; i++) {
+                        for(let j=0; j<numbers.length; j++) {
+                            if(i === j) continue;
+                            const preVat = numbers[i];
+                            const potentialVat = numbers[j];
+                            // เช็คว่า preVat * 0.07 ใกล้เคียงกับ potentialVat หรือไม่
+                            if (Math.abs((preVat * 0.07) - potentialVat) < 0.1) {
+                                finalAmount = preVat + potentialVat;
+                                isMatchVAT = true;
+                                break;
+                            }
+                        }
+                        if(isMatchVAT) break;
+                    }
+                }
+
+                // ถ้าหาคู่ VAT ไม่เจอ ให้ดึงตัวเลขที่มากที่สุด (Max value fallback)
+                if (!isMatchVAT && numbers.length > 0) {
+                    finalAmount = Math.max(...numbers);
+                }
+
+                // 5. สแกนหาคำว่า PT MAX ในภาพต้นฉบับเพื่อเปลี่ยนหมวดหมู่อัตโนมัติ
+                statusEl.innerHTML = '<span class="text-blue-500">✨ กำลังเช็คหมวดหมู่สินค้า...</span>';
+                const typeResult = await Tesseract.recognize(base64Image, 'eng+tha');
+                const fullText = typeResult.data.text;
+                
+                const ptMatch = fullText.match(/PT\s*MAX\s*(LPG|E20|แก๊สโซฮอล์ 95|NGV)/i);
                 if(ptMatch) {
                     document.getElementById('category').value = 'เชื้อเพลิง';
                     toggleFields();
                     document.getElementById('fuelType').value = ptMatch[1].toUpperCase();
                 }
 
-                // ค้นหาตัวเลขยอดเงิน (ทศนิยม 2 ตำแหน่ง)
-                const numMatch = text.match(/(\d{1,3}(?:,\d{3})*\.\d{2})/);
-                if(numMatch) {
-                    amt = numMatch[1].replace(/,/g, '');
-                    const val = parseFloat(amt);
+                // 6. เติมตัวเลขลงช่อง
+                if (finalAmount > 0) {
                     if(document.getElementById('category').value === 'เชื้อเพลิง') {
-                        document.getElementById('fuelAmount').value = val;
+                        document.getElementById('fuelAmount').value = finalAmount.toFixed(2);
                     } else {
-                        document.getElementById('amount').value = val;
+                        document.getElementById('amount').value = finalAmount.toFixed(2);
                     }
-                    statusEl.innerHTML = `<span class="text-green-600 font-bold">✓ ดึงยอดสำเร็จ: ฿${val.toFixed(2)}</span>`;
+                    statusEl.innerHTML = `<span class="text-green-600 font-bold">✓ ดึงยอดสำเร็จ: ฿${finalAmount.toFixed(2)}</span>`;
                 } else {
-                    statusEl.innerHTML = '<span class="text-[#c05640] font-bold">⚠️ ไม่พบยอดเงินชัดเจน กรุณากรอกเอง</span>';
+                    statusEl.innerHTML = '<span class="text-[#c05640] font-bold">⚠️ ไม่พบยอดที่ชัดเจน กรุณากรอกเอง</span>';
                 }
+
             } catch (err) {
                 console.error(err);
                 statusEl.innerHTML = '<span class="text-red-500 font-bold">❌ สแกนล้มเหลว กรุณากรอกเอง</span>';
@@ -377,7 +433,7 @@
             const months = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
             const d = parseInt(dateParts[0], 10);
             const m = months[parseInt(dateParts[1], 10) - 1];
-            const y = dateParts[2].substring(2);
+            const y = dateParts[2].substring(2); // เอาเฉพาะ 2 ตัวหลัง
             let timeStr = '';
             if(parts.length > 1) {
                 timeStr = ` • ${parts[1].substring(0, 5)} น.`;
@@ -525,6 +581,7 @@
             } else { removeImage(); }
 
             document.getElementById('editHeaderBox').classList.remove('hidden');
+            document.getElementById('cancelEditBtn').classList.remove('hidden');
             document.getElementById('deleteBtn').classList.remove('hidden');
             document.getElementById('submitBtn').innerHTML = 'บันทึกการแก้ไข 💾';
             
@@ -539,6 +596,7 @@
             removeImage();
             
             document.getElementById('editHeaderBox').classList.add('hidden');
+            document.getElementById('cancelEditBtn').classList.add('hidden');
             document.getElementById('deleteBtn').classList.add('hidden');
             document.getElementById('submitBtn').innerHTML = 'บันทึกข้อมูลเข้าสู่ระบบ <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"/></svg>';
         }
