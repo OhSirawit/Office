@@ -593,9 +593,14 @@
                     </div>` : '';
 
                 const receiptHtml = (r.fileUrl || r.imageBase64) ? `
-                    <button type="button" onclick="window.open('${r.fileUrl||'#'}','_blank')" class="mt-2 text-[10px] bg-gray-100 border border-gray-200 px-2.5 py-1.5 rounded-md text-gray-800 font-bold flex items-center gap-1.5 hover:bg-gray-200 transition shadow-sm w-max">
+                    <button type="button" onclick="event.stopPropagation(); window.open('${r.fileUrl||'#'}','_blank')" class="text-[10px] bg-gray-100 border border-gray-200 px-2.5 py-1.5 rounded-md text-gray-800 font-bold flex items-center gap-1.5 hover:bg-gray-200 transition shadow-sm w-max">
                         <i class="fa-solid fa-receipt"></i> ดูใบเสร็จ
                     </button>` : '';
+
+                const editHtml = `
+                    <button type="button" onclick="event.stopPropagation(); editRecord('${r.id}')" class="text-[10px] bg-blue-50 border border-blue-200 px-2.5 py-1.5 rounded-md text-blue-700 font-bold flex items-center gap-1.5 hover:bg-blue-100 transition shadow-sm w-max">
+                        <i class="fa-solid fa-pen"></i> แก้ไข
+                    </button>`;
 
                 list.innerHTML += `
                     <div class="bg-white p-4 hover:bg-gray-50 transition border-b border-gray-100 last:border-0 relative cursor-pointer" onclick="editRecord('${r.id}')">
@@ -608,7 +613,10 @@
                         </div>
                         <div class="text-[14px] font-medium text-gray-800 pr-16 leading-relaxed">${r.details || '-'}</div>
                         ${locHtml}
-                        ${receiptHtml}
+                        <div class="flex items-center gap-2 mt-2.5">
+                            ${editHtml}
+                            ${receiptHtml}
+                        </div>
                     </div>
                 `;
             });
