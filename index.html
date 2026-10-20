@@ -444,9 +444,18 @@
             statusBox.innerHTML = '<span class="spinner inline-block border-[#c05640] border-t-transparent w-3 h-3 mr-1 align-middle"></span> กำลังวิเคราะห์ยอดเงินจากใบเสร็จ...';
             
             try {
-                const worker = new Tesseract.TesseractWorker();
-                const res = await worker.recognize(src, 'tha+eng');
-                let text = res.text;
+                // อัปเดตคำสั่ง Tesseract.js สำหรับเวอร์ชัน 4+ 
+                const { data: { text } } = await Tesseract.recognize(
+                    src,
+                    'tha+eng',
+                    {
+                        logger: m => {
+                            if (m.status === 'recognizing text') {
+                                statusBox.innerHTML = `<span class="spinner inline-block border-[#c05640] border-t-transparent w-3 h-3 mr-1 align-middle"></span> กำลังวิเคราะห์... ${Math.round(m.progress * 100)}%`;
+                            }
+                        }
+                    }
+                );
 
                 const fuelMatch = text.match(/PT\s*MAX\s*(LPG|E20|แก๊สโซฮอล์ 95|NGV|แก๊สโซฮอล์\s*95)/i);
                 if (fuelMatch && document.getElementById('category').value !== 'วิ่งงานรถ') {
@@ -500,7 +509,9 @@
                     statusBox.className = "mt-2 text-[11px] font-medium text-center bg-gray-50 py-1 rounded-md border border-gray-100 text-gray-500";
                 }
             } catch (e) {
+                console.error(e);
                 statusBox.innerHTML = 'สแกนขัดข้อง กรุณากรอกเอง';
+                statusBox.className = "mt-2 text-[11px] font-medium text-center bg-red-50 py-1 rounded-md border border-red-100 text-red-500";
             }
         }
 
@@ -554,10 +565,20 @@
 
         function formatDate(ds) {
             if(!ds) return '';
-            const p = ds.split(' ')[0].split('/');
-            if(p.length < 3) return ds.split('T')[0]; 
-            const m = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'][parseInt(p[1])-1];
-            return `${parseInt(p[0])} ${m} ${p[2].substring(2)}`;
+            const parts = ds.split(' ');
+            const datePart = parts[0].split('/');
+            if(datePart.length < 3) return ds.split('T')[0]; 
+            const m = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'][parseInt(datePart[1])-1];
+            
+            let formattedDate = `${parseInt(datePart[0])} ${m} ${datePart[2].substring(2)}`;
+            
+            // ตรวจสอบและแสดงเวลา
+            if (parts.length > 1) {
+                const time = parts[1].substring(0, 5); // ตัดมาแค่ HH:mm
+                formattedDate += ` • ${time} น.`;
+            }
+            
+            return formattedDate;
         }
 
         function renderHistory() {
