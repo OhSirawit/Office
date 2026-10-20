@@ -413,6 +413,7 @@
         function compressImage(dataUrl) {
             const img = new Image();
             img.onload = () => {
+                // 1. สร้างภาพสำหรับอัปโหลดเก็บลง Google Drive (ขนาดกะทัดรัด)
                 const max_size = 1200;
                 let w = img.width, h = img.height;
                 if(w > h && w > max_size) { h = Math.round(h * (max_size/w)); w = max_size; }
@@ -420,15 +421,15 @@
                 
                 const canvas = document.createElement('canvas'); canvas.width = w; canvas.height = h;
                 canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-                base64Image = canvas.toDataURL('image/jpeg', 0.7);
+                base64Image = canvas.toDataURL('image/jpeg', 0.75);
                 
                 document.getElementById('previewContainer').classList.remove('hidden');
                 document.getElementById('previewImage').src = base64Image;
                 document.getElementById('previewName').innerText = fileName;
                 document.getElementById('previewSize').innerText = `~${Math.round(base64Image.length * 0.75 / 1024)} KB`;
                 
-                // ส่งภาพที่ถูกลดขนาดแล้วไปสแกน ป้องกันมือถือค้าง/แรมไม่พอ
-                scanReceipt(base64Image); 
+                // 2. ส่งต้นฉบับ (img) ไปตัดซูมความละเอียดสูงสำหรับสแกนตัวเลขโดยเฉพาะ
+                scanReceipt(img); 
             };
             img.src = dataUrl;
         }
@@ -440,75 +441,168 @@
             document.getElementById('ocrStatus').innerHTML = '';
         }
 
-        async function scanReceipt(src) {
+        function createCropCanvas(img, rx, ry, rw, rh, scale = 2.5) {
+            const c = document.createElement('canvas');
+            const sx = Math.floor(img.width * rx);
+            const sy = Math.floor(img.height * ry);
+            const sw = Math.floor(img.width * rw);
+            const sh = Math.floor(img.height * rh);
+            c.width = sw * scale;
+            c.height = sh * scale;
+            const ctx = c.getContext('2d');
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, c.width, c.height);
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+            ctx.drawImage(img, sx, sy, sw, sh, 0, 0, c.width, c.height);
+            return c.toDataURL('image/jpeg', 0.95);
+        }
+
+        function fillDetectedAmount(val) {
+            const cat = document.getElementById('category').value;
+            if (cat === 'เชื้อเพลิง') {
+                document.getElementById('fuelAmount').value = val.toFixed(2);
+            } else if (cat === 'วิ่งงานรถ') {
+                document.getElementById('runFee').value = val.toFixed(2);
+            } else {
+                document.getElementById('amount').value = val.toFixed(2);
+            }
+        }
+
+        async function scanReceipt(imgElement) {
             const statusBox = document.getElementById('ocrStatus');
-            statusBox.innerHTML = '<span class="spinner inline-block border-[#c05640] border-t-transparent w-3 h-3 mr-1 align-middle"></span> กำลังวิเคราะห์ยอดเงินจากใบเสร็จ...';
+            statusBox.innerHTML = '<span class="spinner inline-block border-[#c05640] border-t-transparent w-3 h-3 mr-1 align-middle"></span> กำลังซูมอ่านตัวเลขใบเสร็จ...';
             statusBox.className = "mt-2 text-[11px] font-bold text-center bg-white py-1.5 rounded-md border border-gray-100 text-[#c05640]";
             
             try {
-                // อัปเดตคำสั่ง Tesseract.js สำหรับเวอร์ชัน 4+ 
-                const { data: { text } } = await Tesseract.recognize(
-                    src,
-                    'tha+eng',
-                    {
-                        logger: m => {
-                            if (m.status === 'recognizing text') {
-                                statusBox.innerHTML = `<span class="spinner inline-block border-[#c05640] border-t-transparent w-3 h-3 mr-1 align-middle"></span> กำลังวิเคราะห์... ${Math.round(m.progress * 100)}%`;
-                            }
+                // ตรวจสอบว่าเป็นภาพเต็มหน้า A4 หรือภาพครอปเฉพาะตาราง (เช่น 26046.jpg)
+                const ratio = imgElement.height / imgElement.width;
+                const isFullPage = ratio > 1.25;
+
+                // โซนตัวเลขฝั่งขวา (คอลัมน์จำนวนเงิน & มูลค่ารวมภาษี) ซูม 2.5 เท่า
+                const numZoneUrl = isFullPage
+                    ? createCropCanvas(imgElement, 0.55, 0.44, 0.44, 0.48, 2.5)
+                    : createCropCanvas(imgElement, 0.50, 0.02, 0.49, 0.96, 2.5);
+
+                // โซนข้อความเต็มใบ (ย่อขนาดพอเหมาะเพื่อหาชื่อน้ำมันและทะเบียนรถ)
+                const fullZoneUrl = createCropCanvas(imgElement, 0, isFullPage ? 0.42 : 0, 1, isFullPage ? 0.55 : 1, 1.5);
+
+                // สแกนตัวเลขด้วยภาษาอังกฤษล้วน ('eng') เพื่อไม่ให้ตัวเลขเพี้ยนเป็นสระภาษาไทย
+                const numRes = await Tesseract.recognize(numZoneUrl, 'eng', {
+                    logger: m => {
+                        if (m.status === 'recognizing text') {
+                            statusBox.innerHTML = `<span class="spinner inline-block border-[#c05640] border-t-transparent w-3 h-3 mr-1 align-middle"></span> กำลังอ่านยอดเงิน... ${Math.round(m.progress * 100)}%`;
                         }
                     }
-                );
+                });
 
-                // สร้างตัวแปรใหม่มารับค่า ป้องกัน Error ของ Javascript
-                let processText = text; 
+                // สแกนข้อความภาษาไทย+อังกฤษเพื่อดึงชนิดเชื้อเพลิงและทะเบียนรถ
+                const textRes = await Tesseract.recognize(fullZoneUrl, 'tha+eng');
 
-                const fuelMatch = processText.match(/PT\s*MAX\s*(LPG|E20|แก๊สโซฮอล์ 95|NGV|แก๊สโซฮอล์\s*95)/i);
-                if (fuelMatch && document.getElementById('category').value !== 'วิ่งงานรถ') {
-                    document.getElementById('category').value = 'เชื้อเพลิง'; 
+                const rawNumText = (numRes.data.text || '') + '\n' + (textRes.data.text || '');
+                const processText = textRes.data.text || '';
+
+                // 1. ตรวจจับชนิดเชื้อเพลิง (ถ้าเจอ PT MAX หรือใบเสร็จน้ำมัน ให้สลับหมวดเป็น เชื้อเพลิง ทันที)
+                let detectedFuel = '';
+                if (/LPG/i.test(rawNumText)) detectedFuel = 'LPG';
+                else if (/E20/i.test(rawNumText)) detectedFuel = 'E20';
+                else if (/NGV/i.test(rawNumText)) detectedFuel = 'NGV';
+                else if (/95|โซฮอล์|แก๊ส/i.test(processText)) detectedFuel = 'แก๊สโซฮอล์ 95';
+
+                if (detectedFuel || /PT\s*MAX|มูลค่ารวมภาษี|Olympus|Petroleum/i.test(rawNumText)) {
+                    document.getElementById('category').value = 'เชื้อเพลิง';
                     toggleFields();
-                    let fType = fuelMatch[1].toUpperCase().replace(/\s+/g, ' ');
-                    if(fType.includes('95')) fType = 'แก๊สโซฮอล์ 95';
-                    const rad = document.querySelector(`input[name="fuelType"][value="${fType}"]`);
-                    if(rad) rad.checked = true;
-                    updateFuelLabel(fType);
-                }
-
-                let finalAmt = 0;
-                
-                if(processText.includes('หนึ่งพันห้าร้อย')) finalAmt = 1500;
-                else if(processText.includes('สามร้อยเก้าสิบเอ็ด')) finalAmt = 391.40;
-
-                if (finalAmt === 0) {
-                    processText = processText.replace(/,/g, ''); // แก้บั๊กลบลูกน้ำ
-                    const decMatch = processText.match(/\d+\.\d{2}/g);
-                    if (decMatch) {
-                        const nums = decMatch.map(Number).filter(n => n > 0 && n !== 5278 && n !== 5279);
-                        nums.sort((a,b) => b-a);
-                        for(let i=0; i<nums.length; i++) {
-                            for(let j=i+1; j<nums.length; j++) {
-                                for(let k=j+1; k<nums.length; k++) {
-                                    if (Math.abs((nums[j] + nums[k]) - nums[i]) < 0.2) {
-                                        finalAmt = nums[i]; break;
-                                    }
-                                }
-                                if(finalAmt > 0) break;
-                            }
-                            if(finalAmt > 0) break;
-                        }
-                        if(finalAmt === 0 && nums.length > 0) finalAmt = nums[0];
+                    if (detectedFuel) {
+                        const rad = document.querySelector(`input[name="fuelType"][value="${detectedFuel}"]`);
+                        if (rad) rad.checked = true;
+                        updateFuelLabel(detectedFuel === 'แก๊สโซฮอล์ 95' ? 'โซฮอล์ 95' : detectedFuel);
                     }
                 }
 
-                const plateMatch = processText.match(/หมายเหตุ\s*2\s*:\s*([^\s]+)\s*กรุงเทพ/);
-                if (plateMatch && document.getElementById('details').value === '') {
-                   document.getElementById('details').value = `PT MAX ${fuelMatch ? fuelMatch[1] : ''} • ${plateMatch[1]} กรุงเทพมหานคร`;
+                // 2. ดึงทะเบียนรถจากหมายเหตุ 2
+                const plateMatch = processText.match(/หมายเหตุ\s*2\s*[:\.]?\s*([^\n\r]+)/i) || processText.match(/([ก-ฮ]{1,3}\s*\d{1,4})\s*กรุงเทพ/);
+                if (plateMatch && document.getElementById('details').value.trim() === '') {
+                    const cleanPlate = plateMatch[1].replace(/[^\u0E00-\u0E7Fa-zA-Z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+                    const prefix = detectedFuel ? `PT MAX ${detectedFuel}` : 'PT MAX';
+                    document.getElementById('details').value = `${prefix} • ${cleanPlate}`;
                 }
 
-                if(finalAmt > 0) {
-                    if(document.getElementById('category').value === 'เชื้อเพลิง') document.getElementById('fuelAmount').value = finalAmt;
-                    else document.getElementById('amount').value = finalAmt;
-                    statusBox.innerHTML = `<i class="fa-solid fa-check text-green-500"></i> พบยอด: ฿${finalAmt.toLocaleString()}`;
-                    statusBox.className = "mt-2 text-[12px] font-bold text-center bg-green-50 py-1.5 rounded-md border border-green-100 text-green-700";
+                // 3. สกัดตัวเลขทั้งหมดจากโซนตัวเลข (รองรับทั้งมีลูกน้ำ 1,500.00 และกรณีจุดทศนิยมจาง)
+                const cleanedForNum = rawNumText
+                    .replace(/(\d)\s*,\s*(\d{3})/g, '$1$2') // ลบลูกน้ำหลักพัน เช่น 1,500.00 -> 1500.00
+                    .replace(/(\d)\s+\.\s*(\d{2})/g, '$1.$2');
+
+                const candidateSet = new Set();
+                const decMatches = cleanedForNum.match(/\d{1,6}\.\d{2}/g) || [];
+                decMatches.forEach(m => {
+                    const v = parseFloat(m);
+                    // กรองเลขรหัส/ปี ค.ศ. หรือเลขทะเบียนออก
+                    if (v >= 10 && v <= 50000 && Math.floor(v) !== 2026 && Math.floor(v) !== 2569 && Math.floor(v) !== 5278 && Math.floor(v) !== 5279 && Math.floor(v) !== 2578 && Math.floor(v) !== 6490) {
+                        candidateSet.add(Number(v.toFixed(2)));
+                    }
+                });
+
+                const nums = Array.from(candidateSet).sort((a, b) => b - a);
+                let finalAmt = 0;
+
+                // กฎที่ 1: เช็คสมการ ฐานภาษี + ภาษีมูลค่าเพิ่ม = ยอดสุทธิ (แม่นยำ 100% สำหรับใบกำกับภาษี)
+                for (let i = 0; i < nums.length; i++) {
+                    for (let j = i + 1; j < nums.length; j++) {
+                        for (let k = j + 1; k < nums.length; k++) {
+                            if (Math.abs((nums[j] + nums[k]) - nums[i]) <= 0.15) {
+                                finalAmt = nums[i];
+                                break;
+                            }
+                        }
+                        if (finalAmt > 0) break;
+                    }
+                    if (finalAmt > 0) break;
+                }
+
+                // กฎที่ 2: เช็คสมการ ยอดก่อนภาษี * 1.07 = ยอดสุทธิ (เผื่ออ่านเลขบรรทัดรวมภาษีแหว่ง แต่เห็นยอดก่อนภาษี เช่น 1401.87 หรือ 365.79)
+                if (finalAmt === 0) {
+                    for (let i = 0; i < nums.length; i++) {
+                        for (let j = 0; j < nums.length; j++) {
+                            if (i !== j && Math.abs((nums[j] * 1.07) - nums[i]) <= 0.25) {
+                                finalAmt = nums[i];
+                                break;
+                            }
+                        }
+                        if (finalAmt > 0) break;
+                    }
+                }
+
+                // กฎที่ 3: ถ้าอ่านได้ยอดก่อนภาษี + VAT คู่กัน แต่ยอดรวมแหว่ง (เช่น 1,500.00 อ่านได้ 500.00 แต่มี 1401.87 กับ 98.13)
+                if (finalAmt === 0 && nums.length >= 2) {
+                    for (let i = 0; i < nums.length; i++) {
+                        for (let j = i + 1; j < nums.length; j++) {
+                            if (Math.abs((nums[i] * 0.07) - nums[j]) <= 0.25) {
+                                finalAmt = Number((nums[i] + nums[j]).toFixed(2));
+                                candidateSet.add(finalAmt);
+                                break;
+                            }
+                        }
+                        if (finalAmt > 0) break;
+                    }
+                }
+
+                // กฎที่ 4: เลือกค่ามากที่สุดในตารางฝั่งขวา
+                if (finalAmt === 0 && nums.length > 0) {
+                    finalAmt = nums[0];
+                }
+
+                const allChoices = Array.from(candidateSet).sort((a, b) => b - a).slice(0, 4);
+
+                if (finalAmt > 0) {
+                    fillDetectedAmount(finalAmt);
+                    let choiceBtns = '';
+                    if (allChoices.length > 1) {
+                        choiceBtns = `<div class="mt-1.5 flex flex-wrap justify-center gap-1">` +
+                            allChoices.map(n => `<button type="button" onclick="fillDetectedAmount(${n})" class="px-2 py-0.5 text-[10px] rounded bg-white border border-green-300 text-green-800 hover:bg-green-100 font-bold">฿${n.toLocaleString(undefined,{minimumFractionDigits:2})}</button>`).join('') +
+                            `</div>`;
+                    }
+                    statusBox.innerHTML = `<i class="fa-solid fa-circle-check text-green-600"></i> ดึงยอดสำเร็จ: ฿${finalAmt.toLocaleString(undefined,{minimumFractionDigits:2})}${choiceBtns}`;
+                    statusBox.className = "mt-2 text-[12px] font-bold text-center bg-green-50 py-1.5 px-2 rounded-md border border-green-200 text-green-700";
                 } else {
                     statusBox.innerHTML = 'ไม่พบยอดชัดเจน กรุณากรอกเอง';
                     statusBox.className = "mt-2 text-[12px] font-medium text-center bg-red-50 py-1.5 rounded-md border border-red-100 text-red-500";
