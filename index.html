@@ -37,13 +37,13 @@
         radial-gradient(#dcd3be 0.6px, transparent 0.6px);
       background-size: 100% 100%, 100% 100%, 24px 24px;
       color: var(--sumi-ink);
+      -webkit-tap-highlight-color: transparent;
     }
     .fade-in { animation: fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1); }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
     
     .shoji-card {
-      background: rgba(255, 253, 249, 0.94);
-      backdrop-filter: blur(8px);
+      background: rgba(255, 253, 249, 0.98);
       border: 1px solid var(--hinoki-border);
       box-shadow: 0 8px 24px -8px rgba(43, 43, 43, 0.06);
     }
@@ -58,97 +58,83 @@
       box-shadow: 0 0 0 3px rgba(200, 75, 49, 0.12);
       outline: none;
     }
-    .hanko-stamp {
-      border: 1.5px solid var(--akane-red);
-      color: var(--akane-red);
-      letter-spacing: 0.02em;
-    }
     .btn-indigo-jp {
       background-color: #263547;
       color: #F9F6F0;
       transition: all 0.25s ease;
       box-shadow: 0 6px 16px -4px rgba(38, 53, 71, 0.25);
     }
-    .btn-indigo-jp:hover {
+    .btn-indigo-jp:hover:not(:disabled) {
       background-color: #1B2634;
       transform: translateY(-1px);
       box-shadow: 0 10px 20px -4px rgba(38, 53, 71, 0.35);
     }
+    .btn-indigo-jp:disabled { opacity: 0.7; cursor: not-allowed; }
+    
+    /* Bottom Navigation Safe Area */
+    .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+    
     ::-webkit-scrollbar { width: 5px; }
     ::-webkit-scrollbar-track { background: #F2ECE1; }
     ::-webkit-scrollbar-thumb { background: #C7BFA9; border-radius: 9999px; }
   </style>
 </head>
-<body class="min-h-screen pb-16 antialiased selection:bg-[#C84B31] selection:text-white">
+<body class="min-h-screen pb-24 antialiased selection:bg-[#C84B31] selection:text-white">
 
   <div class="h-1.5 w-full bg-gradient-to-r from-[#263547] via-[#C84B31] to-[#5F7A61]"></div>
 
-  <header class="bg-[#FFFDF9]/90 backdrop-blur-md sticky top-0 z-30 border-b border-[#E5DEC9]">
-    <div class="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex flex-wrap items-center justify-between gap-4">
-      <div class="flex items-center gap-4">
-        <div class="w-12 h-12 rounded-xl bg-[#C84B31] text-[#FFFDF9] flex flex-col items-center justify-center shadow-sm border border-[#A63A22] shrink-0">
+  <header class="bg-[#FFFDF9]/95 backdrop-blur-md sticky top-0 z-30 border-b border-[#E5DEC9]">
+    <div class="max-w-2xl mx-auto px-4 py-3.5 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <div class="w-11 h-11 rounded-xl bg-[#C84B31] text-[#FFFDF9] flex items-center justify-center shadow-sm border border-[#A63A22] shrink-0">
           <i class="fa-solid fa-file-invoice-dollar text-lg"></i>
         </div>
         <div>
-          <div class="flex items-center gap-2.5">
-            <h1 class="text-lg sm:text-xl font-bold tracking-tight text-[#2B2B2B]">บันทึกค่าใช้จ่ายออฟฟิศ</h1>
-            <span class="hanko-stamp text-[10px] px-2 py-0.5 rounded font-bold bg-[#C84B31]/5">ฝ่ายบัญชี • WepApp</span>
+          <div class="flex items-center gap-2">
+            <h1 class="text-lg font-bold tracking-tight text-[#2B2B2B]">เบิกจ่ายออฟฟิศ</h1>
+            <span class="text-[9px] px-2 py-0.5 rounded font-bold border border-[#C84B31] text-[#C84B31] bg-[#C84B31]/5">WepApp</span>
           </div>
-          <p class="text-xs text-[#6E6A63] flex items-center gap-2 mt-1">
-            <span id="syncDot" class="w-2 h-2 rounded-full bg-[#5F7A61] animate-pulse"></span>
-            <span id="syncText">เชื่อมต่อฐานข้อมูล WepApp พร้อมใช้งาน</span>
+          <p class="text-[11px] text-[#6E6A63] flex items-center gap-1.5 mt-0.5">
+            <span id="syncDot" class="w-1.5 h-1.5 rounded-full bg-[#5F7A61] animate-pulse"></span>
+            <span id="syncText">เชื่อมต่อฐานข้อมูลแล้ว</span>
           </p>
         </div>
       </div>
 
       <div class="flex items-center gap-2">
-        <button type="button" id="installAppBtn" onclick="handleInstallClick()" class="bg-[#C84B31] hover:bg-[#B03E26] text-white text-xs px-3.5 py-2.5 rounded-xl font-semibold shadow-sm transition flex items-center gap-1.5">
+        <button type="button" id="installAppBtn" onclick="handleInstallClick()" class="bg-[#C84B31]/10 text-[#C84B31] hover:bg-[#C84B31] hover:text-white text-[11px] px-3 py-2 rounded-lg font-bold transition flex items-center gap-1.5 border border-[#C84B31]/20">
           <i class="fa-solid fa-mobile-screen-button"></i> <span>ติดตั้งแอป</span>
         </button>
-        <a href="https://docs.google.com/spreadsheets/d/1ShKjTR3FVVYUyu5EKimiOGO77vr38KO_vaYHQ_3Ro2k/edit" target="_blank" rel="noopener noreferrer" class="bg-[#F4EFE6] hover:bg-[#EAE2D3] text-[#3D3A35] border border-[#DCD3C0] text-xs px-3.5 py-2.5 rounded-xl font-medium transition flex items-center gap-2">
-          <i class="fa-solid fa-table text-[#5F7A61]"></i> <span class="hidden sm:inline">ตารางข้อมูล (Sheet)</span>
-        </a>
-        <button type="button" onclick="fetchFromSheet()" class="bg-[#F4EFE6] hover:bg-[#EAE2D3] text-[#3D3A35] border border-[#DCD3C0] text-xs px-3.5 py-2.5 rounded-xl font-medium transition flex items-center gap-2">
-          <i class="fa-solid fa-rotate text-[#C84B31]" id="refreshIcon"></i> <span>ซิงค์ข้อมูล</span>
-        </button>
-        <button type="button" onclick="exportCSV()" class="bg-[#5F7A61] hover:bg-[#4E6650] text-white text-xs px-4 py-2.5 rounded-xl font-semibold shadow-sm transition flex items-center gap-2">
-          <i class="fa-solid fa-file-csv"></i> <span class="hidden sm:inline">ส่งออก CSV</span>
+        <button type="button" onclick="fetchFromSheet()" class="bg-[#F4EFE6] hover:bg-[#EAE2D3] text-[#3D3A35] border border-[#DCD3C0] text-[11px] px-3 py-2 rounded-lg font-medium transition flex items-center gap-1.5">
+          <i class="fa-solid fa-rotate text-[#C84B31]" id="refreshIcon"></i>
         </button>
       </div>
     </div>
   </header>
 
-  <main class="max-w-6xl mx-auto px-4 sm:px-6 mt-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
-    <section class="lg:col-span-7">
+  <main class="max-w-2xl mx-auto px-4 mt-6">
+    
+    <!-- ==================== VIEW 1: ฟอร์มบันทึก (FORM VIEW) ==================== -->
+    <section id="view-form" class="fade-in block space-y-5">
       <form id="expenseForm" onsubmit="handleSubmit(event)" class="shoji-card rounded-2xl overflow-hidden">
-        <div class="bg-[#F2ECE1] px-6 sm:px-8 py-4 border-b border-[#E2D9C5] flex items-center justify-between">
-          <div class="flex items-center gap-3">
-            <span class="w-8 h-8 rounded-lg bg-[#263547] text-[#F9F6F0] flex items-center justify-center text-xs font-bold">
-              <i class="fa-solid fa-pen-nib"></i>
-            </span>
-            <div>
-              <h2 class="font-bold text-[#2B2B2B] text-base">บันทึกรายการเบิกจ่ายใหม่</h2>
-              <p class="text-[11px] text-[#7A746B]">กรุณากรอกข้อมูลให้ครบถ้วนเพื่อความถูกต้องทางบัญชี</p>
-            </div>
+        <div class="bg-[#F2ECE1]/80 px-5 py-3.5 border-b border-[#E2D9C5] flex items-center justify-between">
+          <div class="flex items-center gap-2.5">
+            <span class="w-1.5 h-4 rounded-sm bg-[#C84B31]"></span>
+            <h2 class="font-bold text-[#2B2B2B] text-sm">บันทึกรายการใหม่</h2>
           </div>
-          <span class="text-[11px] text-[#C84B31] bg-[#C84B31]/10 border border-[#C84B31]/20 px-2.5 py-1 rounded-md font-semibold">* จำเป็น</span>
+          <span class="text-[10px] text-[#C84B31] font-semibold">* จำเป็น</span>
         </div>
 
-        <div class="p-6 sm:p-8 space-y-6">
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+        <div class="p-5 space-y-5">
+          <div class="grid grid-cols-2 gap-4">
             <div>
-              <label class="block text-xs font-bold text-[#5A554C] mb-2">
-                <i class="fa-regular fa-calendar text-[#C84B31] mr-1"></i> วันที่ทำรายการ <span class="text-[#C84B31]">*</span>
-              </label>
-              <input type="date" id="date" required class="washi-input w-full rounded-xl px-4 py-3 text-sm font-medium">
+              <label class="block text-xs font-bold text-[#5A554C] mb-1.5">วันที่ทำรายการ <span class="text-[#C84B31]">*</span></label>
+              <input type="date" id="date" required class="washi-input w-full rounded-xl px-3 py-2.5 text-sm font-medium">
             </div>
-
             <div>
-              <label for="category" class="block text-xs font-bold text-[#5A554C] mb-2">
-                <i class="fa-solid fa-tag text-[#C84B31] mr-1"></i> หมวดหมู่รายการ <span class="text-[#C84B31]">*</span>
-              </label>
+              <label for="category" class="block text-xs font-bold text-[#5A554C] mb-1.5">หมวดหมู่ <span class="text-[#C84B31]">*</span></label>
               <div class="relative">
-                <select id="category" required onchange="selectCategory(this.value)" class="washi-input w-full appearance-none rounded-xl px-4 py-3 pr-10 text-sm font-semibold cursor-pointer">
+                <select id="category" required onchange="selectCategory(this.value)" class="washi-input w-full appearance-none rounded-xl px-3 py-2.5 pr-8 text-sm font-semibold cursor-pointer">
                   <option value="วิ่งงานรถ">🚚 วิ่งงานรถ</option>
                   <option value="เบิกเงิน">💴 เบิกเงิน</option>
                   <option value="เชื้อเพลิง">⛽ เชื้อเพลิง</option>
@@ -158,226 +144,156 @@
                   <option value="ฝากซื้อของ">🛍️ ฝากซื้อของ</option>
                   <option value="อื่นๆ">🎐 อื่นๆ</option>
                 </select>
-                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-[#7A746B]">
-                  <i class="fa-solid fa-chevron-down text-xs"></i>
-                </div>
+                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-[#7A746B]"><i class="fa-solid fa-chevron-down text-[10px]"></i></div>
               </div>
             </div>
           </div>
 
-          <div id="dynamicSection" class="fade-in bg-[#F6F2E9] p-5 sm:p-6 rounded-xl border border-[#E2D9C5] space-y-4">
-            <div class="flex items-center justify-between border-b border-[#E2D9C5] pb-2.5">
-              <span class="text-xs font-bold text-[#263547] flex items-center gap-2">
-                <i class="fa-solid fa-route text-[#C84B31]"></i> ส่วนที่ 2: รายละเอียดวิ่งงานรถ
-              </span>
-              <span class="text-[11px] text-[#7A746B] font-medium">หน่วย: บาท (THB)</span>
-            </div>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label class="block text-xs font-semibold text-[#5A554C] mb-1.5">ค่าวิ่งงาน [฿] <span class="text-[#C84B31]">*</span></label>
-                <input type="number" step="0.01" id="runFee" required placeholder="0.00" class="washi-input w-full rounded-xl px-3.5 py-2.5 text-sm font-semibold">
-              </div>
-              <div>
-                <label class="block text-xs font-semibold text-[#5A554C] mb-1.5">เก็บเงินสด [฿] <span class="text-[#C84B31]">*</span></label>
-                <input type="number" step="0.01" id="cashCollected" required placeholder="0.00" class="washi-input w-full rounded-xl px-3.5 py-2.5 text-sm font-semibold">
-              </div>
-              <div>
-                <label class="block text-xs font-semibold text-[#5A554C] mb-1.5">ค่าทางด่วน [฿]</label>
-                <input type="number" step="0.01" id="tollFee" placeholder="0.00" class="washi-input w-full rounded-xl px-3.5 py-2.5 text-sm font-semibold">
-              </div>
-              <div>
-                <label class="block text-xs font-semibold text-[#5A554C] mb-1.5">ค่าจอดรถ [฿]</label>
-                <input type="number" step="0.01" id="parkingFee" placeholder="0.00" class="washi-input w-full rounded-xl px-3.5 py-2.5 text-sm font-semibold">
-              </div>
-            </div>
-            <div class="pt-3 border-t border-[#E2D9C5]">
-              <label class="block text-xs font-semibold text-[#3D3A35] mb-2">🎐 ค่าตอบแทนพิเศษ / ทิป (Tips) <span class="text-[#C84B31]">*</span></label>
-              <div class="grid grid-cols-2 gap-3">
-                <label class="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border border-[#DCD3C0] bg-white hover:border-[#C84B31] text-xs font-semibold cursor-pointer transition">
-                  <input type="radio" name="hasTips" value="yes" onchange="toggleTipsInput(true)" class="accent-[#C84B31]" required> 👍 มีทิป
-                </label>
-                <label class="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border border-[#DCD3C0] bg-white hover:border-[#C84B31] text-xs font-semibold cursor-pointer transition">
-                  <input type="radio" name="hasTips" value="no" onchange="toggleTipsInput(false)" class="accent-[#C84B31]" checked> 👎 ไม่มีทิป
-                </label>
-              </div>
-              <div id="tipsBox" class="hidden mt-3.5 fade-in">
-                <label class="block text-xs font-semibold text-[#C84B31] mb-1.5">ระบุจำนวนเงิน Tips [฿] <span class="text-[#C84B31]">*</span></label>
-                <input type="number" step="0.01" id="tipsAmount" placeholder="0.00" class="washi-input w-full rounded-xl px-3.5 py-2.5 text-sm font-semibold">
-              </div>
-            </div>
+          <div id="dynamicSection" class="fade-in bg-[#F6F2E9] p-4 rounded-xl border border-[#E2D9C5] space-y-3.5">
+            <!-- (ถูกแทนที่ด้วย JS ตามหมวดหมู่) -->
           </div>
 
           <div>
-            <label class="block text-xs font-bold text-[#5A554C] mb-2">
-              <i class="fa-regular fa-pen-to-square text-[#C84B31] mr-1"></i> รายละเอียดเพิ่มเติม <span class="text-[#C84B31]">*</span>
-            </label>
-            <textarea id="details" rows="2" required placeholder="ระบุรายละเอียดงาน / ชื่อลูกค้า / จุดหมายปลายทาง หรือรายการสิ่งของ..." class="washi-input w-full rounded-xl px-4 py-3 text-sm"></textarea>
+            <label class="block text-xs font-bold text-[#5A554C] mb-1.5">รายละเอียดเพิ่มเติม <span class="text-[#C84B31]">*</span></label>
+            <textarea id="details" rows="2" required placeholder="ระบุรายละเอียดงาน / จุดหมายปลายทาง..." class="washi-input w-full rounded-xl px-3.5 py-2.5 text-sm"></textarea>
           </div>
 
-          <div class="space-y-3 pt-1">
-            <div class="grid grid-cols-2 gap-3.5">
-              <button type="button" onclick="toggleReceiptDrawer()" class="flex items-center justify-center gap-2.5 py-3.5 px-4 rounded-2xl border-2 border-dashed border-[#C7BFA9] bg-[#FFFDF9] hover:border-[#C84B31] hover:bg-[#FFF9F7] text-[#263547] font-bold text-xs sm:text-sm transition shadow-sm">
-                <i class="fa-solid fa-camera text-[#C84B31] text-base"></i>
-                <span>แนบใบเสร็จ</span>
+          <!-- กล่องพิกัด GPS ซ่อนปุ่ม บังคับดึงออโต้ -->
+          <div class="hidden">
+             <input type="text" id="locationName">
+             <input type="hidden" id="lat"><input type="hidden" id="lng">
+          </div>
+
+          <div class="pt-2">
+            <div class="grid grid-cols-2 gap-3 mb-3">
+              <button type="button" onclick="toggleReceiptDrawer()" class="flex items-center justify-center gap-2 py-3 px-2 rounded-xl border-2 border-dashed border-[#C7BFA9] bg-[#FFFDF9] hover:border-[#C84B31] hover:text-[#C84B31] text-[#263547] font-bold text-[11px] sm:text-xs transition shadow-sm">
+                <i class="fa-solid fa-camera text-base"></i> <span>แนบใบเสร็จ</span>
               </button>
 
-              <div class="flex items-center justify-center gap-2.5 py-3.5 px-4 rounded-2xl border border-[#E2D9C5] bg-[#FFFDF9] text-[#2B2B2B] font-bold text-xs sm:text-sm shadow-sm select-none">
-                <input type="checkbox" id="saveGpsToggle" checked disabled class="w-4 h-4 rounded accent-[#263547]">
+              <div class="flex items-center justify-center gap-2 py-3 px-2 rounded-xl border border-[#E2D9C5] bg-[#FFFDF9] text-[#2B2B2B] font-bold text-[11px] sm:text-xs shadow-sm select-none">
+                <input type="checkbox" checked disabled class="w-4 h-4 rounded accent-[#263547]">
                 <span class="tracking-wide">SAVE GPS</span>
-                <span id="gpsMiniDot" class="w-2 h-2 rounded-full bg-amber-400 animate-pulse" title="สถานะพิกัด GPS"></span>
+                <span id="gpsMiniDot" class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse ml-1"></span>
               </div>
             </div>
 
-            <input type="hidden" id="locationName">
-            <input type="hidden" id="lat">
-            <input type="hidden" id="lng">
-
-            <div id="receiptChoiceDrawer" class="hidden fade-in grid grid-cols-2 gap-3 bg-[#F6F2E9] p-3 rounded-xl border border-[#E2D9C5]">
-              <button type="button" onclick="openCamera()" class="flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg bg-white hover:bg-[#FFF9F7] border border-[#DCD3C0] text-[#2B2B2B] font-semibold text-xs transition">
-                <i class="fa-solid fa-camera text-[#C84B31]"></i> ถ่ายรูปด้วยกล้อง
+            <!-- ลิ้นชักเลือกรูป -->
+            <div id="receiptChoiceDrawer" class="hidden fade-in grid grid-cols-2 gap-2 bg-[#F6F2E9] p-2 rounded-xl border border-[#E2D9C5] mb-3">
+              <button type="button" onclick="openCamera()" class="flex flex-col items-center justify-center gap-1.5 py-2.5 rounded-lg bg-white border border-[#DCD3C0] text-[#2B2B2B] font-semibold text-[11px]">
+                <i class="fa-solid fa-camera text-[#C84B31] text-lg"></i> ถ่ายรูป
               </button>
-              <label class="flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg bg-white hover:bg-[#F7FAF7] border border-[#DCD3C0] text-[#2B2B2B] font-semibold text-xs cursor-pointer transition">
-                <i class="fa-solid fa-images text-[#5F7A61]"></i> เลือกจากอัลบั้ม
+              <label class="flex flex-col items-center justify-center gap-1.5 py-2.5 rounded-lg bg-white border border-[#DCD3C0] text-[#2B2B2B] font-semibold text-[11px] cursor-pointer">
+                <i class="fa-solid fa-images text-[#5F7A61] text-lg"></i> อัลบั้ม
                 <input type="file" id="fileInput" accept="image/*" class="hidden" onchange="handleFileSelect(event)">
               </label>
             </div>
 
-            <div id="cameraBox" class="hidden bg-[#1E1E1E] rounded-xl overflow-hidden relative shadow-lg border border-[#DCD3C0]">
-              <video id="cameraVideo" autoplay playsinline class="w-full max-h-80 object-cover"></video>
-              <div class="p-3.5 bg-[#2B2B2B] flex items-center justify-between">
-                <button type="button" onclick="switchCamera()" class="text-[#F9F6F0] text-xs bg-white/10 hover:bg-white/20 px-3.5 py-2 rounded-lg transition">
-                  <i class="fa-solid fa-camera-rotate mr-1"></i> สลับกล้อง
-                </button>
-                <button type="button" onclick="capturePhoto()" class="bg-[#C84B31] hover:bg-[#B03E26] text-white font-bold text-xs px-5 py-2.5 rounded-full shadow flex items-center gap-1.5">
-                  <i class="fa-solid fa-circle text-white text-[10px]"></i> กดถ่ายภาพ
-                </button>
-                <button type="button" onclick="closeCamera()" class="text-[#C7BFA9] hover:text-white text-xs px-3 py-1.5">ยกเลิก</button>
+            <!-- กล้อง -->
+            <div id="cameraBox" class="hidden bg-[#1E1E1E] rounded-xl overflow-hidden relative shadow-lg mb-3">
+              <video id="cameraVideo" autoplay playsinline class="w-full max-h-64 object-cover"></video>
+              <div class="p-3 bg-[#2B2B2B] flex items-center justify-between">
+                <button type="button" onclick="switchCamera()" class="text-[#F9F6F0] text-[11px] bg-white/10 px-3 py-2 rounded-lg"><i class="fa-solid fa-camera-rotate"></i> สลับกล้อง</button>
+                <button type="button" onclick="capturePhoto()" class="bg-[#C84B31] text-white font-bold text-[11px] px-4 py-2 rounded-full"><i class="fa-solid fa-circle"></i> ถ่ายภาพ</button>
+                <button type="button" onclick="closeCamera()" class="text-[#C7BFA9] text-[11px] px-2 py-2">ยกเลิก</button>
               </div>
             </div>
 
-            <div id="previewBox" class="hidden flex flex-col gap-2 bg-[#5F7A61]/10 border border-[#5F7A61]/30 p-3 rounded-xl">
+            <div id="previewBox" class="hidden flex flex-col gap-2 bg-[#F9F6F0] border border-[#DCD3C0] p-3 rounded-xl mb-3">
               <div class="flex items-center justify-between">
-                <div class="flex items-center gap-3.5">
-                  <img id="previewImg" class="w-14 h-14 rounded-lg object-cover border border-[#5F7A61]/40 shadow-sm cursor-pointer hover:opacity-90 transition" onclick="viewFullImage(this.src)">
+                <div class="flex items-center gap-3">
+                  <img id="previewImg" class="w-12 h-12 rounded-lg object-cover border border-[#C7BFA9] cursor-pointer" onclick="viewFullImage(this.src)">
                   <div>
-                    <p class="text-xs font-bold text-[#2B2B2B]" id="previewName">สลิปใบเสร็จ.jpg</p>
-                    <p class="text-[11px] text-[#4E6650] font-medium mt-0.5" id="previewSize">ย่อขนาดเรียบร้อย</p>
-                    <p class="text-[11px] text-[#C84B31] font-semibold mt-0.5 hidden items-center gap-1.5" id="ocrStatusText">
-                      <i class="fa-solid fa-wand-magic-sparkles fa-spin"></i> <span>กำลังสแกนอ่านยอดเงินจากใบเสร็จ...</span>
+                    <p class="text-[11px] font-bold text-[#2B2B2B]" id="previewName">receipt.jpg</p>
+                    <p class="text-[10px] text-[#6E6A63] mt-0.5" id="previewSize">บีบอัดแล้ว</p>
+                    <p class="text-[10px] text-[#C84B31] font-semibold mt-1 hidden items-center gap-1" id="ocrStatusText">
+                      <i class="fa-solid fa-wand-magic-sparkles fa-spin"></i> <span>กำลังสแกนราคา...</span>
                     </p>
-                    <div id="ocrCandidatesBox" class="hidden flex-wrap items-center gap-1.5 mt-1.5"></div>
                   </div>
                 </div>
-                <div class="flex items-center gap-1.5">
-                  <button type="button" onclick="scanReceiptPrice()" title="สแกนอ่านราคาอีกครั้ง" class="w-8 h-8 rounded-lg bg-white text-[#263547] hover:bg-[#263547] hover:text-white border border-[#E5DEC9] flex items-center justify-center transition">
-                    <i class="fa-solid fa-wand-magic-sparkles text-xs"></i>
-                  </button>
-                  <button type="button" onclick="clearImage()" class="w-8 h-8 rounded-lg bg-white text-[#C84B31] hover:bg-[#C84B31] hover:text-white border border-[#E5DEC9] flex items-center justify-center transition">
-                    <i class="fa-solid fa-trash-can text-xs"></i>
-                  </button>
-                </div>
+                <button type="button" onclick="clearImage()" class="w-8 h-8 rounded-lg bg-white text-[#C84B31] border border-[#E5DEC9] flex items-center justify-center">
+                  <i class="fa-solid fa-trash-can text-xs"></i>
+                </button>
               </div>
             </div>
           </div>
 
-          <button type="submit" id="submitBtn" class="btn-indigo-jp w-full font-semibold py-4 rounded-xl flex items-center justify-center gap-2.5 text-sm tracking-wide">
-            <span>บันทึกข้อมูลเข้าสู่ระบบ</span>
-            <i class="fa-solid fa-paper-plane text-[#E8C574] text-sm"></i>
+          <button type="submit" id="submitBtn" class="btn-indigo-jp w-full font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 text-sm">
+            <span>บันทึกข้อมูลเข้าสู่ระบบ</span> <i class="fa-solid fa-paper-plane text-[#E8C574]"></i>
           </button>
         </div>
       </form>
     </section>
 
-    <section class="lg:col-span-5 space-y-6">
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div class="relative overflow-hidden rounded-2xl bg-[#263547] p-5 text-[#F9F6F0] shadow-md border border-[#1B2634]">
-          <div class="flex items-center justify-between">
-            <span class="text-xs text-[#C7BFA9] font-medium">รวมค่าใช้จ่ายสุทธิ</span>
-            <span class="w-7 h-7 rounded-lg bg-white/10 flex items-center justify-center text-[#E8C574] text-xs">
-              <i class="fa-solid fa-wallet"></i>
-            </span>
-          </div>
-          <p class="text-2xl font-bold mt-3 tracking-tight text-[#FFFDF9]" id="sumExpense">฿0.00</p>
-          <p class="text-[11px] text-[#9AA6B5] mt-1">คำนวณจากรายการทั้งหมด</p>
+    <!-- ==================== VIEW 2: หน้าประวัติ (HISTORY VIEW) ==================== -->
+    <section id="view-history" class="fade-in hidden space-y-5">
+      <!-- การ์ดสรุปยอดสีเข้มหรูหรา -->
+      <div class="relative overflow-hidden rounded-2xl bg-[#263547] p-5 text-[#F9F6F0] shadow-md border border-[#1B2634]">
+        <div class="flex items-center justify-between">
+          <span class="text-xs text-[#C7BFA9] font-medium">รวมค่าใช้จ่ายสุทธิ</span>
+          <span class="w-7 h-7 rounded-lg bg-white/10 flex items-center justify-center text-[#E8C574] text-xs"><i class="fa-solid fa-wallet"></i></span>
         </div>
+        <p class="text-3xl font-bold mt-2 tracking-tight text-[#FFFDF9]" id="sumExpense">฿0.00</p>
+        <p class="text-[10px] text-[#9AA6B5] mt-1">คำนวณจากรายการทั้งหมด</p>
+      </div>
 
-        <div class="relative overflow-hidden rounded-2xl shoji-card p-5">
-          <div class="flex items-center justify-between">
-            <span class="text-xs text-[#5A554C] font-bold">เก็บเงินสด / คืนเงิน</span>
-            <span class="w-7 h-7 rounded-lg bg-[#5F7A61]/15 flex items-center justify-center text-[#5F7A61] text-xs">
-              <i class="fa-solid fa-coins"></i>
-            </span>
-          </div>
-          <p class="text-2xl font-bold text-[#4E6650] mt-3 tracking-tight" id="sumCashIn">฿0.00</p>
-          <p class="text-[11px] text-[#8C857B] mt-1">ยอดเงินสดรับเข้าออฟฟิศ</p>
+      <div class="relative overflow-hidden rounded-2xl shoji-card p-5 border-l-4 border-l-[#5F7A61]">
+        <div class="flex items-center justify-between">
+          <span class="text-xs text-[#5A554C] font-bold">เก็บเงินสด / คืนเงิน</span>
+          <span class="w-7 h-7 rounded-lg bg-[#5F7A61]/15 flex items-center justify-center text-[#5F7A61] text-xs"><i class="fa-solid fa-coins"></i></span>
         </div>
+        <p class="text-2xl font-bold text-[#4E6650] mt-2 tracking-tight" id="sumCashIn">฿0.00</p>
+        <p class="text-[10px] text-[#8C857B] mt-1">ยอดเงินสดรับเข้าออฟฟิศ</p>
       </div>
 
       <div class="shoji-card rounded-2xl overflow-hidden">
-        <div class="px-6 py-4 border-b border-[#E5DEC9] flex items-center justify-between bg-[#F2ECE1]/70">
-          <div class="flex items-center gap-2.5">
-            <span class="w-2 h-4 rounded-sm bg-[#C84B31]"></span>
+        <div class="px-5 py-3.5 border-b border-[#E5DEC9] bg-[#F2ECE1]/70 flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="w-1.5 h-4 rounded-sm bg-[#C84B31]"></span>
             <h3 class="font-bold text-sm text-[#2B2B2B]">ประวัติธุรกรรมล่าสุด</h3>
           </div>
-          <span class="text-xs bg-[#FFFDF9] text-[#3D3A35] px-3 py-1 rounded-full font-semibold border border-[#DCD3C0]" id="recordCount">0 รายการ</span>
+          <span class="text-[10px] bg-white text-[#2B2B2B] px-2.5 py-1 rounded-full font-bold border border-[#DCD3C0]" id="recordCount">0 รายการ</span>
         </div>
-        <div id="historyList" class="divide-y divide-[#EDE6D6] max-h-[540px] overflow-y-auto">
-          <p class="text-center text-[#8C857B] text-sm py-12">ยังไม่มีรายการบันทึก</p>
+        <div id="historyList" class="divide-y divide-[#EDE6D6] max-h-[60vh] overflow-y-auto pb-4">
+          <p class="text-center text-[#8C857B] text-sm py-10">ยังไม่มีรายการบันทึก</p>
+        </div>
+        
+        <div class="p-3 bg-[#F6F2E9] border-t border-[#E5DEC9]">
+          <button type="button" onclick="exportCSV()" class="w-full bg-white hover:bg-[#F2ECE1] text-[#3D3A35] border border-[#DCD3C0] text-xs px-3 py-2.5 rounded-xl font-bold transition flex items-center justify-center gap-2">
+            <i class="fa-solid fa-file-csv text-[#5F7A61]"></i> ส่งออกรายงาน (CSV)
+          </button>
         </div>
       </div>
     </section>
+
   </main>
+
+  <!-- ==================== BOTTOM NAVIGATION BAR ==================== -->
+  <nav class="fixed bottom-0 w-full bg-[#FFFDF9]/95 backdrop-blur-md border-t border-[#E5DEC9] z-40 pb-safe shadow-[0_-4px_16px_rgba(0,0,0,0.03)]">
+    <div class="max-w-2xl mx-auto flex justify-between px-2 pt-1 pb-1">
+      <button type="button" onclick="switchTab('form')" id="nav-tab-form" class="flex-1 flex flex-col items-center justify-center py-2 text-[#C84B31] font-bold transition">
+        <div class="w-10 h-7 flex items-center justify-center rounded-full bg-[#C84B31]/10 mb-1 transition-colors" id="nav-bg-form">
+          <i class="fa-solid fa-pen-to-square text-lg"></i>
+        </div>
+        <span class="text-[10px]">บันทึกข้อมูล</span>
+      </button>
+      
+      <button type="button" onclick="switchTab('history')" id="nav-tab-history" class="flex-1 flex flex-col items-center justify-center py-2 text-[#9C9283] font-medium transition hover:text-[#5F7A61]">
+        <div class="w-10 h-7 flex items-center justify-center rounded-full bg-transparent mb-1 transition-colors" id="nav-bg-history">
+          <i class="fa-solid fa-clock-rotate-left text-lg"></i>
+        </div>
+        <span class="text-[10px]">ประวัติ & สรุปยอด</span>
+      </button>
+    </div>
+  </nav>
 
   <div id="imgModal" onclick="this.classList.add('hidden')" class="fixed inset-0 bg-[#1E1E1E]/85 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
     <img id="modalImgSrc" class="max-w-full max-h-[90vh] rounded-xl shadow-2xl border border-[#E5DEC9]/30">
   </div>
 
-  <div id="installModal" class="fixed inset-0 bg-[#1E1E1E]/75 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-    <div class="shoji-card max-w-md w-full rounded-2xl overflow-hidden shadow-2xl border border-[#E5DEC9] fade-in">
-      <div class="bg-[#263547] text-[#F9F6F0] px-6 py-4 flex items-center justify-between">
-        <div class="flex items-center gap-2.5">
-          <i class="fa-solid fa-mobile-screen-button text-[#E8C574] text-lg"></i>
-          <h3 class="font-bold text-sm">วิธีติดตั้งเป็นแอปบนมือถือ (Web App)</h3>
-        </div>
-        <button type="button" onclick="closeInstallModal()" class="text-[#C7BFA9] hover:text-white text-sm">
-          <i class="fa-solid fa-xmark"></i>
-        </button>
-      </div>
-      <div class="p-6 space-y-4 text-xs text-[#3D3A35] leading-relaxed">
-        <div class="bg-[#F6F2E9] p-3.5 rounded-xl border border-[#E2D9C5] space-y-1.5">
-          <p class="font-bold text-[#263547] flex items-center gap-1.5">
-            <i class="fa-brands fa-apple text-base"></i> สำหรับ iPhone / iPad (Safari)
-          </p>
-          <ol class="list-decimal list-inside space-y-1 text-[#5A554C]">
-            <li>เปิดลิงก์เว็บนี้ในแอป <b>Safari</b></li>
-            <li>กดปุ่ม <b>แชร์ (Share)</b> <i class="fa-solid fa-arrow-up-from-bracket text-[#C84B31]"></i> ด้านล่างหน้าจอ</li>
-            <li>เลื่อนลงมาแล้วเลือก <b>"เพิ่มไปยังหน้าจอโฮม" (Add to Home Screen)</b></li>
-            <li>กด <b>เพิ่ม (Add)</b> ที่มุมขวาบน จะได้ไอคอนแอปบนหน้าจอมือถือทันที</li>
-          </ol>
-        </div>
-
-        <div class="bg-[#F6F2E9] p-3.5 rounded-xl border border-[#E2D9C5] space-y-1.5">
-          <p class="font-bold text-[#5F7A61] flex items-center gap-1.5">
-            <i class="fa-brands fa-android text-base"></i> สำหรับ Android (Chrome)
-          </p>
-          <ol class="list-decimal list-inside space-y-1 text-[#5A554C]">
-            <li>เปิดลิงก์เว็บนี้ในแอป <b>Chrome</b></li>
-            <li>กดปุ่มเมนู <b>จุด 3 จุด (⋮)</b> มุมขวาบน</li>
-            <li>เลือก <b>"ติดตั้งแอป" (Install app)</b> หรือ <b>"เพิ่มลงในหน้าจอหลัก"</b></li>
-          </ol>
-        </div>
-
-        <button type="button" onclick="closeInstallModal()" class="btn-indigo-jp w-full py-3 rounded-xl font-semibold text-xs">
-          เข้าใจแล้ว
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <div id="toastBox" class="fixed bottom-6 right-6 z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none">
-    <div id="toastInner" class="bg-[#263547] text-[#F9F6F0] border border-[#E5DEC9]/30 px-5 py-3.5 rounded-xl shadow-xl flex items-center gap-3 text-xs sm:text-sm">
+  <div id="toastBox" class="fixed top-6 left-1/2 -translate-x-1/2 z-50 transform -translate-y-20 opacity-0 transition-all duration-300 pointer-events-none w-[90%] max-w-sm">
+    <div id="toastInner" class="bg-[#263547] text-[#F9F6F0] border border-[#E5DEC9]/30 px-4 py-3 rounded-xl shadow-xl flex items-center gap-3 text-xs sm:text-sm font-medium">
       <i id="toastIcon" class="fa-solid fa-circle-check text-[#88B08B] text-base"></i>
-      <span id="toastMessage" class="font-medium">บันทึกสำเร็จ</span>
+      <span id="toastMessage">แจ้งเตือน</span>
     </div>
   </div>
 
@@ -385,22 +301,13 @@
     const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzS7z62Yt31PU_4cssZbTmMsEqXAP45c8XW5X8U2HBZvG4a10oKLKXOwjVbuM1shlxw/exec";
 
     let records = [];
-    try {
-      records = JSON.parse(localStorage.getItem('office_expenses_v1') || '[]');
-    } catch (e) {
-      records = [];
-    }
+    try { records = JSON.parse(localStorage.getItem('office_expenses_v1') || '[]'); } catch (e) { records = []; }
 
-    let compressedBase64 = '';
-    let highResOcrDataUrl = '';
-    let croppedTableOcrDataUrl = '';
-    let zoneProductDataUrl = '';
-    let zoneAmountDataUrl = '';
-    let zoneNoteDataUrl = '';
-    let compressedFileName = '';
-    let cameraStream = null;
-    let facingMode = 'environment';
-    let deferredInstallPrompt = null;
+    let compressedBase64 = '', compressedFileName = '';
+    let cameraStream = null, facingMode = 'environment';
+    
+    // โซนภาพสำหรับการทำ OCR
+    let zoneProductDataUrl = '', zoneAmountDataUrl = '', zoneNoteDataUrl = '';
 
     window.addEventListener('DOMContentLoaded', function() {
       const today = new Date().toISOString().split('T')[0];
@@ -408,296 +315,169 @@
       initWebAppManifest();
       renderHistory();
       fetchFromSheet();
+      selectCategory('วิ่งงานรถ');
       acquireMandatoryGPS(false);
     });
 
-    window.addEventListener('beforeinstallprompt', function(e) {
-      e.preventDefault();
-      deferredInstallPrompt = e;
-    });
+    function switchTab(tabId) {
+      const vForm = document.getElementById('view-form');
+      const vHist = document.getElementById('view-history');
+      const tForm = document.getElementById('nav-tab-form');
+      const tHist = document.getElementById('nav-tab-history');
+      const bgForm = document.getElementById('nav-bg-form');
+      const bgHist = document.getElementById('nav-bg-history');
 
-    function initWebAppManifest() {
-      try {
-        const canvas = document.createElement('canvas');
-        canvas.width = 512;
-        canvas.height = 512;
-        const ctx = canvas.getContext('2d');
-        ctx.fillStyle = '#263547';
-        ctx.fillRect(0, 0, 512, 512);
-        ctx.fillStyle = '#C84B31';
-        ctx.beginPath();
-        ctx.arc(256, 256, 170, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = '#FFFDF9';
-        ctx.font = 'bold 180px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText('฿', 256, 268);
-
-        const iconUrl = canvas.toDataURL('image/png');
-        document.getElementById('appAppleIcon').href = iconUrl;
-        document.getElementById('appFavicon').href = iconUrl;
-
-        const manifest = {
-          name: 'ระบบบันทึกค่าใช้จ่ายออฟฟิศ',
-          short_name: 'เบิกจ่ายออฟฟิศ',
-          description: 'เว็บแอปพลิเคชันบันทึกค่าใช้จ่ายออฟฟิศเชื่อมต่อ Google Sheet',
-          start_url: window.location.href,
-          display: 'standalone',
-          background_color: '#F9F6F0',
-          theme_color: '#263547',
-          icons: [
-            { src: iconUrl, sizes: '512x512', type: 'image/png', purpose: 'any maskable' }
-          ]
-        };
-        const blob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
-        document.getElementById('appManifest').href = URL.createObjectURL(blob);
-      } catch (e) {}
-    }
-
-    async function handleInstallClick() {
-      if (deferredInstallPrompt) {
-        deferredInstallPrompt.prompt();
-        const choice = await deferredInstallPrompt.userChoice;
-        if (choice.outcome === 'accepted') {
-          showNotice('ติดตั้งเว็บแอปลงในอุปกรณ์เรียบร้อยแล้ว!', false);
-        }
-        deferredInstallPrompt = null;
+      if (tabId === 'form') {
+        vForm.classList.remove('hidden'); vHist.classList.add('hidden');
+        tForm.className = "flex-1 flex flex-col items-center justify-center py-2 text-[#C84B31] font-bold transition";
+        bgForm.className = "w-10 h-7 flex items-center justify-center rounded-full bg-[#C84B31]/10 mb-1 transition-colors";
+        tHist.className = "flex-1 flex flex-col items-center justify-center py-2 text-[#9C9283] font-medium transition hover:text-[#5F7A61]";
+        bgHist.className = "w-10 h-7 flex items-center justify-center rounded-full bg-transparent mb-1 transition-colors";
       } else {
-        document.getElementById('installModal').classList.remove('hidden');
+        vHist.classList.remove('hidden'); vForm.classList.add('hidden');
+        tHist.className = "flex-1 flex flex-col items-center justify-center py-2 text-[#5F7A61] font-bold transition";
+        bgHist.className = "w-10 h-7 flex items-center justify-center rounded-full bg-[#5F7A61]/15 mb-1 transition-colors";
+        tForm.className = "flex-1 flex flex-col items-center justify-center py-2 text-[#9C9283] font-medium transition hover:text-[#C84B31]";
+        bgForm.className = "w-10 h-7 flex items-center justify-center rounded-full bg-transparent mb-1 transition-colors";
       }
     }
 
-    function closeInstallModal() {
-      document.getElementById('installModal').classList.add('hidden');
+    function initWebAppManifest() {
+      try {
+        const canvas = document.createElement('canvas'); canvas.width = 512; canvas.height = 512;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#263547'; ctx.fillRect(0, 0, 512, 512);
+        ctx.fillStyle = '#C84B31'; ctx.beginPath(); ctx.arc(256, 256, 170, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#FFFDF9'; ctx.font = 'bold 180px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText('฿', 256, 268);
+        const iconUrl = canvas.toDataURL('image/png');
+        document.getElementById('appAppleIcon').href = iconUrl;
+        document.getElementById('appFavicon').href = iconUrl;
+      } catch (e) {}
     }
 
     function showNotice(msg, isError) {
       const box = document.getElementById('toastBox');
-      const icon = document.getElementById('toastIcon');
-      const text = document.getElementById('toastMessage');
-      text.textContent = msg;
-      icon.className = isError
-        ? 'fa-solid fa-triangle-exclamation text-[#E57373] text-base'
+      document.getElementById('toastMessage').textContent = msg;
+      document.getElementById('toastIcon').className = isError 
+        ? 'fa-solid fa-circle-exclamation text-[#E57373] text-base' 
         : 'fa-solid fa-circle-check text-[#88B08B] text-base';
-      box.classList.remove('translate-y-20', 'opacity-0');
-      setTimeout(function() {
-        box.classList.add('translate-y-20', 'opacity-0');
-      }, 3500);
+      box.classList.remove('-translate-y-20', 'opacity-0');
+      setTimeout(function() { box.classList.add('-translate-y-20', 'opacity-0'); }, 3000);
     }
 
     function selectCategory(catId) {
       document.getElementById('category').value = catId;
-      renderDynamicFields(catId);
-    }
-
-    function renderDynamicFields(catId) {
       const box = document.getElementById('dynamicSection');
-      box.classList.remove('hidden');
-
       if (catId === 'วิ่งงานรถ') {
         box.innerHTML = [
-          '<div class="flex items-center justify-between border-b border-[#E2D9C5] pb-2.5">',
-          '  <span class="text-xs font-bold text-[#263547] flex items-center gap-2">',
-          '    <i class="fa-solid fa-route text-[#C84B31]"></i> ส่วนที่ 2: รายละเอียดวิ่งงานรถ',
-          '  </span>',
-          '  <span class="text-[11px] text-[#7A746B] font-medium">หน่วย: บาท (THB)</span>',
+          '<div class="flex items-center justify-between border-b border-[#E2D9C5] pb-2">',
+          '  <span class="text-[11px] font-bold text-[#263547]"><i class="fa-solid fa-car-side text-[#C84B31] mr-1"></i> วิ่งงานรถ (บาท)</span>',
           '</div>',
-          '<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">',
-          '  <div>',
-          '    <label class="block text-xs font-semibold text-[#5A554C] mb-1.5">ค่าวิ่งงาน [฿] <span class="text-[#C84B31]">*</span></label>',
-          '    <input type="number" step="0.01" id="runFee" required placeholder="0.00" class="washi-input w-full rounded-xl px-3.5 py-2.5 text-sm font-semibold">',
-          '  </div>',
-          '  <div>',
-          '    <label class="block text-xs font-semibold text-[#5A554C] mb-1.5">เก็บเงินสด [฿] <span class="text-[#C84B31]">*</span></label>',
-          '    <input type="number" step="0.01" id="cashCollected" required placeholder="0.00" class="washi-input w-full rounded-xl px-3.5 py-2.5 text-sm font-semibold">',
-          '  </div>',
-          '  <div>',
-          '    <label class="block text-xs font-semibold text-[#5A554C] mb-1.5">ค่าทางด่วน [฿]</label>',
-          '    <input type="number" step="0.01" id="tollFee" placeholder="0.00" class="washi-input w-full rounded-xl px-3.5 py-2.5 text-sm font-semibold">',
-          '  </div>',
-          '  <div>',
-          '    <label class="block text-xs font-semibold text-[#5A554C] mb-1.5">ค่าจอดรถ [฿]</label>',
-          '    <input type="number" step="0.01" id="parkingFee" placeholder="0.00" class="washi-input w-full rounded-xl px-3.5 py-2.5 text-sm font-semibold">',
-          '  </div>',
+          '<div class="grid grid-cols-2 gap-3">',
+          '  <div><label class="block text-[10px] font-semibold text-[#5A554C] mb-1">ค่าวิ่งงาน <span class="text-[#C84B31]">*</span></label><input type="number" step="0.01" id="runFee" required placeholder="0.00" class="washi-input w-full rounded-lg px-2.5 py-2 text-xs"></div>',
+          '  <div><label class="block text-[10px] font-semibold text-[#5A554C] mb-1">เก็บเงินสด <span class="text-[#C84B31]">*</span></label><input type="number" step="0.01" id="cashCollected" required placeholder="0.00" class="washi-input w-full rounded-lg px-2.5 py-2 text-xs"></div>',
+          '  <div><label class="block text-[10px] font-semibold text-[#5A554C] mb-1">ค่าทางด่วน</label><input type="number" step="0.01" id="tollFee" placeholder="0.00" class="washi-input w-full rounded-lg px-2.5 py-2 text-xs"></div>',
+          '  <div><label class="block text-[10px] font-semibold text-[#5A554C] mb-1">ค่าจอดรถ</label><input type="number" step="0.01" id="parkingFee" placeholder="0.00" class="washi-input w-full rounded-lg px-2.5 py-2 text-xs"></div>',
           '</div>',
-          '<div class="pt-3 border-t border-[#E2D9C5]">',
-          '  <label class="block text-xs font-semibold text-[#3D3A35] mb-2">🎐 ค่าตอบแทนพิเศษ / ทิป (Tips) <span class="text-[#C84B31]">*</span></label>',
-          '  <div class="grid grid-cols-2 gap-3">',
-          '    <label class="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border border-[#DCD3C0] bg-white hover:border-[#C84B31] text-xs font-semibold cursor-pointer transition">',
-          '      <input type="radio" name="hasTips" value="yes" onchange="toggleTipsInput(true)" class="accent-[#C84B31]" required> 👍 มีทิป',
-          '    </label>',
-          '    <label class="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border border-[#DCD3C0] bg-white hover:border-[#C84B31] text-xs font-semibold cursor-pointer transition">',
-          '      <input type="radio" name="hasTips" value="no" onchange="toggleTipsInput(false)" class="accent-[#C84B31]" checked> 👎 ไม่มีทิป',
-          '    </label>',
-          '  </div>',
-          '  <div id="tipsBox" class="hidden mt-3.5 fade-in">',
-          '    <label class="block text-xs font-semibold text-[#C84B31] mb-1.5">ระบุจำนวนเงิน Tips [฿] <span class="text-[#C84B31]">*</span></label>',
-          '    <input type="number" step="0.01" id="tipsAmount" placeholder="0.00" class="washi-input w-full rounded-xl px-3.5 py-2.5 text-sm font-semibold">',
-          '  </div>',
-          '</div>'
+          '<div class="pt-2 border-t border-[#E2D9C5]"><label class="block text-[10px] font-semibold text-[#5A554C] mb-1.5">ทิป (Tips) <span class="text-[#C84B31]">*</span></label>',
+          '<div class="flex gap-2">',
+          '  <label class="flex-1 flex items-center justify-center gap-1 py-1.5 border border-[#DCD3C0] bg-white rounded-lg text-[10px] cursor-pointer"><input type="radio" name="hasTips" value="yes" onchange="toggleTipsInput(true)" class="accent-[#C84B31]" required> มีทิป</label>',
+          '  <label class="flex-1 flex items-center justify-center gap-1 py-1.5 border border-[#DCD3C0] bg-white rounded-lg text-[10px] cursor-pointer"><input type="radio" name="hasTips" value="no" onchange="toggleTipsInput(false)" class="accent-[#C84B31]" checked> ไม่มีทิป</label>',
+          '</div>',
+          '<div id="tipsBox" class="hidden mt-2"><input type="number" step="0.01" id="tipsAmount" placeholder="ยอดเงินทิป 0.00" class="washi-input w-full rounded-lg px-2.5 py-2 text-xs"></div></div>'
         ].join('');
       } else if (catId === 'เชื้อเพลิง') {
         box.innerHTML = [
-          '<div class="flex items-center justify-between border-b border-[#E2D9C5] pb-2.5">',
-          '  <span class="text-xs font-bold text-[#263547] flex items-center gap-2">',
-          '    <i class="fa-solid fa-gas-pump text-[#C84B31]"></i> ส่วนที่ 4: เลือกชนิดเชื้อเพลิง',
-          '  </span>',
+          '<div class="flex items-center gap-1.5 border-b border-[#E2D9C5] pb-2 text-[11px] font-bold text-[#263547]"><i class="fa-solid fa-gas-pump text-[#C84B31]"></i> เชื้อเพลิง</div>',
+          '<div class="grid grid-cols-4 gap-1.5">',
+          '  <label class="border border-[#DCD3C0] rounded-lg py-1.5 text-center text-[10px] font-bold cursor-pointer bg-white"><input type="radio" name="fuelType" value="E20" checked onchange="updateFuelLabel(\'E20\')" class="accent-[#C84B31]"> E20</label>',
+          '  <label class="border border-[#DCD3C0] rounded-lg py-1.5 text-center text-[10px] font-bold cursor-pointer bg-white"><input type="radio" name="fuelType" value="LPG" onchange="updateFuelLabel(\'LPG\')" class="accent-[#C84B31]"> LPG</label>',
+          '  <label class="border border-[#DCD3C0] rounded-lg py-1.5 text-center text-[10px] font-bold cursor-pointer bg-white"><input type="radio" name="fuelType" value="NGV" onchange="updateFuelLabel(\'NGV\')" class="accent-[#C84B31]"> NGV</label>',
+          '  <label class="border border-[#DCD3C0] rounded-lg py-1.5 text-center text-[10px] font-bold cursor-pointer bg-white"><input type="radio" name="fuelType" value="โซฮอล์ 95" onchange="updateFuelLabel(\'โซฮอล์ 95\')" class="accent-[#C84B31]"> 95</label>',
           '</div>',
-          '<div class="grid grid-cols-3 gap-3">',
-          '  <label class="border border-[#DCD3C0] rounded-xl p-3 text-center text-xs font-bold cursor-pointer bg-white hover:border-[#C84B31] transition">',
-          '    <input type="radio" name="fuelType" value="E20" checked onchange="updateFuelLabel(\'E20\')" class="accent-[#C84B31] mr-1.5"> E20',
-          '  </label>',
-          '  <label class="border border-[#DCD3C0] rounded-xl p-3 text-center text-xs font-bold cursor-pointer bg-white hover:border-[#C84B31] transition">',
-          '    <input type="radio" name="fuelType" value="LPG" onchange="updateFuelLabel(\'LPG\')" class="accent-[#C84B31] mr-1.5"> LPG',
-          '  </label>',
-          '  <label class="border border-[#DCD3C0] rounded-xl p-3 text-center text-xs font-bold cursor-pointer bg-white hover:border-[#C84B31] transition">',
-          '    <input type="radio" name="fuelType" value="NGV" onchange="updateFuelLabel(\'NGV\')" class="accent-[#C84B31] mr-1.5"> NGV',
-          '  </label>',
-          '</div>',
-          '<div>',
-          '  <label id="fuelAmountLabel" class="block text-xs font-semibold text-[#5A554C] mb-1.5">E20 [฿] <span class="text-[#C84B31]">*</span></label>',
-          '  <input type="number" step="0.01" id="singleAmount" required placeholder="0.00" class="washi-input w-full rounded-xl px-3.5 py-2.5 text-sm font-semibold">',
-          '</div>'
+          '<div class="mt-2"><label id="fuelAmountLabel" class="block text-[10px] font-semibold text-[#5A554C] mb-1">ยอดเติม E20 [฿] <span class="text-[#C84B31]">*</span></label><input type="number" step="0.01" id="singleAmount" required placeholder="0.00" class="washi-input w-full rounded-lg px-2.5 py-2 text-xs"></div>'
         ].join('');
       } else {
-        const labelMap = {
-          'เบิกเงิน': 'จำนวนเงินที่เบิก [฿]',
-          'ล้างรถ': 'ค่าบริการล้างรถ [฿]',
-          'ซ่อมรถ': 'ค่าซ่อมบำรุงรถ [฿]',
-          'คืนเงิน': 'จำนวนเงินที่ส่งคืน [฿]',
-          'ฝากซื้อของ': 'ค่าซื้อของ [฿]',
-          'อื่นๆ': 'จำนวนเงินค่าใช้จ่ายอื่นๆ [฿]'
-        };
-        const title = labelMap[catId] || 'จำนวนเงิน [฿]';
-        box.innerHTML = [
-          '<div>',
-          '  <label class="block text-xs font-semibold text-[#5A554C] mb-1.5">' + title + ' <span class="text-[#C84B31]">*</span></label>',
-          '  <input type="number" step="0.01" id="singleAmount" required placeholder="0.00" class="washi-input w-full rounded-xl px-3.5 py-2.5 text-sm font-semibold">',
-          '</div>'
-        ].join('');
+        box.innerHTML = '<div><label class="block text-[11px] font-semibold text-[#5A554C] mb-1.5">จำนวนเงิน [฿] <span class="text-[#C84B31]">*</span></label><input type="number" step="0.01" id="singleAmount" required placeholder="0.00" class="washi-input w-full rounded-xl px-3 py-2 text-sm"></div>';
       }
     }
 
     function toggleTipsInput(show) {
       const tipsBox = document.getElementById('tipsBox');
       const tipsInput = document.getElementById('tipsAmount');
-      if (show) {
-        tipsBox.classList.remove('hidden');
-        tipsInput.required = true;
-      } else {
-        tipsBox.classList.add('hidden');
-        tipsInput.required = false;
-        tipsInput.value = '';
-      }
+      if (show) { tipsBox.classList.remove('hidden'); tipsInput.required = true; } 
+      else { tipsBox.classList.add('hidden'); tipsInput.required = false; tipsInput.value = ''; }
     }
-
-    function updateFuelLabel(type) {
-      document.getElementById('fuelAmountLabel').innerHTML = type + ' [฿] <span class="text-[#C84B31]">*</span>';
-    }
-
-    function toggleReceiptDrawer() {
-      const drawer = document.getElementById('receiptChoiceDrawer');
-      if (drawer) drawer.classList.toggle('hidden');
-    }
+    function updateFuelLabel(type) { document.getElementById('fuelAmountLabel').innerHTML = 'ยอดเติม ' + type + ' [฿] <span class="text-[#C84B31]">*</span>'; }
+    function toggleReceiptDrawer() { document.getElementById('receiptChoiceDrawer').classList.toggle('hidden'); }
 
     function acquireMandatoryGPS(forceFresh) {
       return new Promise(function(resolve, reject) {
         const dot = document.getElementById('gpsMiniDot');
-
         if (!navigator.geolocation) {
-          if (dot) dot.className = 'w-2 h-2 rounded-full bg-rose-500';
-          reject(new Error('อุปกรณ์ไม่รองรับ GPS'));
-          return;
+          if (dot) dot.className = 'w-1.5 h-1.5 rounded-full bg-rose-500 ml-1';
+          return reject(new Error('GPS not supported'));
         }
-
-        if (dot) dot.className = 'w-2 h-2 rounded-full bg-amber-400 animate-pulse';
+        if (dot) dot.className = 'w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse ml-1';
 
         navigator.geolocation.getCurrentPosition(async function(pos) {
-          const lat = pos.coords.latitude.toFixed(6);
-          const lng = pos.coords.longitude.toFixed(6);
-          document.getElementById('lat').value = lat;
-          document.getElementById('lng').value = lng;
-
-          if (dot) dot.className = 'w-2 h-2 rounded-full bg-[#5F7A61]';
-
+          const lat = pos.coords.latitude.toFixed(6), lng = pos.coords.longitude.toFixed(6);
+          document.getElementById('lat').value = lat; document.getElementById('lng').value = lng;
+          if (dot) { dot.className = 'w-1.5 h-1.5 rounded-full bg-[#5F7A61] ml-1'; dot.classList.remove('animate-pulse'); }
+          
           const locInput = document.getElementById('locationName');
           if (!locInput.value || forceFresh) {
             try {
               const res = await fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat=' + lat + '&lon=' + lng + '&accept-language=th');
               const data = await res.json();
-              if (data && data.display_name) {
-                locInput.value = data.display_name.split(',').slice(0, 3).join(', ');
-              }
+              if (data && data.display_name) locInput.value = data.display_name.split(',').slice(0, 3).join(', ');
             } catch (e) {}
           }
           resolve({ lat: lat, lng: lng });
         }, function(err) {
-          if (dot) dot.className = 'w-2 h-2 rounded-full bg-rose-500';
+          if (dot) dot.className = 'w-1.5 h-1.5 rounded-full bg-rose-500 ml-1';
           reject(err);
-        }, { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 });
+        }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
       });
     }
 
     async function openCamera() {
-      const drawer = document.getElementById('receiptChoiceDrawer');
-      if (drawer) drawer.classList.add('hidden');
-      const box = document.getElementById('cameraBox');
-      const video = document.getElementById('cameraVideo');
+      document.getElementById('receiptChoiceDrawer').classList.add('hidden');
+      const box = document.getElementById('cameraBox'), video = document.getElementById('cameraVideo');
       try {
         if (cameraStream) cameraStream.getTracks().forEach(function(t) { t.stop(); });
         cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: facingMode } });
-        video.srcObject = cameraStream;
-        box.classList.remove('hidden');
+        video.srcObject = cameraStream; box.classList.remove('hidden');
       } catch (err) {
         document.getElementById('fileInput').setAttribute('capture', 'environment');
         document.getElementById('fileInput').click();
       }
     }
-
-    function switchCamera() {
-      facingMode = facingMode === 'environment' ? 'user' : 'environment';
-      openCamera();
-    }
-
-    function closeCamera() {
-      if (cameraStream) cameraStream.getTracks().forEach(function(t) { t.stop(); });
-      document.getElementById('cameraBox').classList.add('hidden');
-    }
-
+    function switchCamera() { facingMode = facingMode === 'environment' ? 'user' : 'environment'; openCamera(); }
+    function closeCamera() { if (cameraStream) cameraStream.getTracks().forEach(function(t) { t.stop(); }); document.getElementById('cameraBox').classList.add('hidden'); }
     function capturePhoto() {
-      const video = document.getElementById('cameraVideo');
-      const canvas = document.createElement('canvas');
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      canvas.getContext('2d').drawImage(video, 0, 0);
-      closeCamera();
+      const video = document.getElementById('cameraVideo'); const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+      canvas.getContext('2d').drawImage(video, 0, 0); closeCamera();
       compressImageFromSource(canvas.toDataURL('image/jpeg'), 'camera_' + Date.now() + '.jpg');
     }
-
     function handleFileSelect(e) {
-      const drawer = document.getElementById('receiptChoiceDrawer');
-      if (drawer) drawer.classList.add('hidden');
-      const file = e.target.files[0];
-      if (!file) return;
+      document.getElementById('receiptChoiceDrawer').classList.add('hidden');
+      const file = e.target.files[0]; if (!file) return;
       const reader = new FileReader();
       reader.onload = function(ev) { compressImageFromSource(ev.target.result, file.name); };
       reader.readAsDataURL(file);
     }
 
     function cropRegionZoom(img, rx, ry, rw, rh, scale) {
-      const sx = Math.round(img.width * rx);
-      const sy = Math.round(img.height * ry);
-      const sw = Math.round(img.width * rw);
-      const sh = Math.round(img.height * rh);
+      const sx = Math.round(img.width * rx), sy = Math.round(img.height * ry);
+      const sw = Math.round(img.width * rw), sh = Math.round(img.height * rh);
       const c = document.createElement('canvas');
-      c.width = Math.max(1, Math.round(sw * scale));
-      c.height = Math.max(1, Math.round(sh * scale));
+      c.width = Math.max(1, Math.round(sw * scale)); c.height = Math.max(1, Math.round(sh * scale));
       const ctx = c.getContext('2d');
-      ctx.fillStyle = '#FFFFFF';
-      ctx.fillRect(0, 0, c.width, c.height);
-      ctx.imageSmoothingEnabled = true;
-      ctx.imageSmoothingQuality = 'high';
+      ctx.fillStyle = '#FFFFFF'; ctx.fillRect(0, 0, c.width, c.height);
+      ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
       ctx.drawImage(img, sx, sy, sw, sh, 0, 0, c.width, c.height);
       return c.toDataURL('image/png');
     }
@@ -705,34 +485,32 @@
     function compressImageFromSource(dataUrl, fileName) {
       const img = new Image();
       img.onload = function() {
-        // โซนที่ 1: รายการสินค้า (PT MAX LPG) -> แนวนอน 10%-48%, แนวตั้ง 49%-60% ขยาย 3 เท่า
-        zoneProductDataUrl = cropRegionZoom(img, 0.10, 0.49, 0.38, 0.11, 3.0);
+        const aspect = img.height / img.width;
+        // ปรับการตัด 3 โซน (หลบเส้นตารางขวาให้แม่นยำ)
+        if (aspect > 1.15) { // A4 Full page
+          zoneProductDataUrl = cropRegionZoom(img, 0.05, 0.45, 0.40, 0.15, 3.5);
+          zoneAmountDataUrl  = cropRegionZoom(img, 0.70, 0.45, 0.26, 0.45, 3.5); // เว้นขอบขวานิดนึง (0.26 จากเดิม 0.3)
+          zoneNoteDataUrl    = cropRegionZoom(img, 0.01, 0.85, 0.65, 0.12, 3.0);
+        } else { // Cropped Table
+          zoneProductDataUrl = cropRegionZoom(img, 0.02, 0.05, 0.45, 0.40, 3.5);
+          zoneAmountDataUrl  = cropRegionZoom(img, 0.68, 0.05, 0.28, 0.90, 3.5);
+          zoneNoteDataUrl    = cropRegionZoom(img, 0.01, 0.65, 0.70, 0.30, 3.0);
+        }
 
-        // โซนที่ 2: ช่องจำนวนเงิน & มูลค่ารวมภาษี (391.40) -> แนวนอน 83%-98.2% (หลบเส้นกรอบขวาสุด), แนวตั้ง 49%-90% ขยาย 3.5 เท่า
-        zoneAmountDataUrl = cropRegionZoom(img, 0.83, 0.49, 0.152, 0.41, 3.5);
-
-        // โซนที่ 3: หมายเหตุ 2 (ทะเบียนรถ ฌถ6490 กรุงเทพมหานคร) -> แนวนอน 1%-62%, แนวตั้ง 88%-96% ขยาย 3 เท่า
-        zoneNoteDataUrl = cropRegionZoom(img, 0.01, 0.88, 0.61, 0.08, 3.0);
-
-        // โซนสำรอง: ครึ่งล่างของใบเสร็จ (เผื่อใบเสร็จรูปแบบอื่น)
-        croppedTableOcrDataUrl = cropRegionZoom(img, 0.02, 0.46, 0.96, 0.50, 2.0);
-
-        const MAX_SIDE = 1200;
+        const MAX_SIDE = 1000;
         let w = img.width, h = img.height;
         if (w > h && w > MAX_SIDE) { h = Math.round(h * (MAX_SIDE / w)); w = MAX_SIDE; }
         else if (h > w && h > MAX_SIDE) { w = Math.round(w * (MAX_SIDE / h)); h = MAX_SIDE; }
 
-        const canvas = document.createElement('canvas');
-        canvas.width = w; canvas.height = h;
+        const canvas = document.createElement('canvas'); canvas.width = w; canvas.height = h;
         canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-
-        compressedBase64 = canvas.toDataURL('image/jpeg', 0.75);
+        compressedBase64 = canvas.toDataURL('image/jpeg', 0.65);
         compressedFileName = fileName.replace(/\.[^/.]+$/, '') + '.jpg';
 
         const kb = Math.round((compressedBase64.length * 3 / 4) / 1024);
         document.getElementById('previewImg').src = compressedBase64;
         document.getElementById('previewName').textContent = compressedFileName;
-        document.getElementById('previewSize').textContent = 'ขนาดหลังบีบอัด: ~' + kb + ' KB';
+        document.getElementById('previewSize').textContent = 'ขนาด: ~' + kb + ' KB';
         document.getElementById('previewBox').classList.remove('hidden');
 
         scanReceiptPrice();
@@ -740,134 +518,65 @@
       img.src = dataUrl;
     }
 
-    function applyDetectedAmount(val) {
-      const priceVal = Number(val).toFixed(2);
-      const singleAmountInput = document.getElementById('singleAmount');
-      const runFeeInput = document.getElementById('runFee');
-      if (singleAmountInput) {
-        singleAmountInput.value = priceVal;
-      } else if (runFeeInput) {
-        runFeeInput.value = priceVal;
-      }
-      const ocrStatus = document.getElementById('ocrStatusText');
-      if (ocrStatus) {
-        ocrStatus.innerHTML = '<i class="fa-solid fa-circle-check text-[#5F7A61]"></i> <span class="text-[#4E6650]">ดึงข้อมูลสำเร็จ: ฿' + Number(priceVal).toLocaleString('th-TH', { minimumFractionDigits: 2 }) + '</span>';
-      }
-      showNotice('ใส่ยอดเงิน ฿' + Number(priceVal).toLocaleString('th-TH', { minimumFractionDigits: 2 }) + ' เรียบร้อย', false);
-    }
-
     async function scanReceiptPrice() {
-      if (!compressedBase64) return;
       const ocrStatus = document.getElementById('ocrStatusText');
-      const candidatesBox = document.getElementById('ocrCandidatesBox');
-      if (candidatesBox) {
-        candidatesBox.classList.add('hidden');
-        candidatesBox.innerHTML = '';
-      }
-      if (ocrStatus) {
-        ocrStatus.classList.remove('hidden');
-        ocrStatus.classList.add('flex');
-        ocrStatus.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles fa-spin"></i> <span>กำลังสแกน 3 จุด (สินค้า / ยอดรวม / ทะเบียนรถ)...</span>';
-      }
+      ocrStatus.classList.remove('hidden'); ocrStatus.classList.add('flex');
+      ocrStatus.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles fa-spin"></i> <span>กำลังอ่านบิลอัจฉริยะ...</span>';
 
       try {
-        if (!window.Tesseract) throw new Error('Tesseract not loaded');
-
-        // 1. สแกนจุดที่ 1 (รายการสินค้า: PT MAX LPG) + จุดที่ 2 (คอลัมน์จำนวนเงิน & มูลค่ารวมภาษี: 391.40) ด้วยโหมดภาษาอังกฤษล้วน (เร็วและแม่นยำสำหรับตัวเลขและคำว่า LPG/E20)
+        if (!window.Tesseract) throw new Error('Tesseract unavailable');
+        
+        // Scan with eng pure for numbers to avoid Thai letter confusion near lines
         const [prodRes, amtRes, noteRes] = await Promise.all([
-          zoneProductDataUrl ? Tesseract.recognize(zoneProductDataUrl, 'eng') : Promise.resolve(null),
+          zoneProductDataUrl ? Tesseract.recognize(zoneProductDataUrl, 'tha+eng') : Promise.resolve(null),
           zoneAmountDataUrl ? Tesseract.recognize(zoneAmountDataUrl, 'eng') : Promise.resolve(null),
           zoneNoteDataUrl ? Tesseract.recognize(zoneNoteDataUrl, 'tha+eng') : Promise.resolve(null)
         ]);
 
-        const prodText = (prodRes && prodRes.data && prodRes.data.text) ? prodRes.data.text : '';
-        let amtText = (amtRes && amtRes.data && amtRes.data.text) ? amtRes.data.text : '';
-        const noteText = (noteRes && noteRes.data && noteRes.data.text) ? noteRes.data.text : '';
+        const prodText = prodRes?.data?.text || '';
+        const amtText = amtRes?.data?.text || '';
+        const noteText = noteRes?.data?.text || '';
 
-        // หากรอบแรกยังไม่พบตัวเลขในคอลัมน์ขวา ให้สแกนตารางครึ่งล่างซ้ำ
-        let parsed = parseTargetedReceiptZones(prodText, amtText, noteText);
-        if ((!parsed || !parsed.totalAmount) && croppedTableOcrDataUrl) {
-          const fallbackRes = await Tesseract.recognize(croppedTableOcrDataUrl, 'eng+tha');
-          const fbText = (fallbackRes && fallbackRes.data && fallbackRes.data.text) ? fallbackRes.data.text : '';
-          parsed = parseTargetedReceiptZones(prodText + '\n' + fbText, amtText + '\n' + fbText, noteText + '\n' + fbText);
-        }
+        const parsed = parseTargetedReceiptZones(prodText, amtText, noteText);
 
-        if (parsed) {
-          // 1. ตั้งค่าหมวดหมู่เป็น "เชื้อเพลิง" และติ๊กเลือกชนิดเชื้อเพลิง (เช่น LPG)
+        if (parsed && (parsed.totalAmount > 0 || parsed.fuelType)) {
           if (parsed.fuelType) {
             selectCategory('เชื้อเพลิง');
-            document.getElementById('category').value = 'เชื้อเพลิง';
             const radio = document.querySelector('input[name="fuelType"][value="' + parsed.fuelType + '"]');
-            if (radio) {
-              radio.checked = true;
-              updateFuelLabel(parsed.fuelType);
-            }
+            if (radio) { radio.checked = true; updateFuelLabel(parsed.fuelType); }
           }
-
-          // 2. ใส่รายละเอียด (เช่น PT MAX LPG - ฌถ6490 กรุงเทพมหานคร)
-          if (parsed.detailsText) {
-            const detailsInput = document.getElementById('details');
-            if (detailsInput) {
-              detailsInput.value = parsed.detailsText;
-            }
-          }
-
-          // 3. ใส่ยอดเงินรวม (เช่น 391.40)
-          if (parsed.totalAmount && Number(parsed.totalAmount) > 0) {
-            applyDetectedAmount(parsed.totalAmount);
-
-            if (candidatesBox && parsed.candidates && parsed.candidates.length > 1) {
-              candidatesBox.classList.remove('hidden');
-              candidatesBox.classList.add('flex');
-              candidatesBox.innerHTML = '<span class="text-[10px] text-[#6E6A63]">สลับยอด:</span>' +
-                parsed.candidates.slice(0, 4).map(function(c) {
-                  return '<button type="button" onclick="applyDetectedAmount(' + c + ')" class="text-[11px] font-bold px-2 py-0.5 rounded bg-white hover:bg-[#C84B31] hover:text-white text-[#263547] border border-[#DCD3C0] transition shadow-sm">฿' + Number(c).toFixed(2) + '</button>';
-                }).join('');
-            }
+          if (parsed.detailsText) document.getElementById('details').value = parsed.detailsText;
+          
+          if (parsed.totalAmount > 0) {
+            const priceVal = parsed.totalAmount.toFixed(2);
+            if (document.getElementById('singleAmount')) document.getElementById('singleAmount').value = priceVal;
+            else if (document.getElementById('runFee')) document.getElementById('runFee').value = priceVal;
+            ocrStatus.innerHTML = '<i class="fa-solid fa-circle-check text-[#5F7A61]"></i> <span class="text-[#4E6650]">พบยอด ฿' + Number(priceVal).toLocaleString() + '</span>';
+            showNotice('ดึงข้อมูลใบเสร็จสำเร็จ!', false);
             return;
           }
         }
-
-        if (ocrStatus) {
-          ocrStatus.innerHTML = '<i class="fa-solid fa-circle-info text-[#8C857B]"></i> <span class="text-[#6E6A63]">ไม่พบตัวเลขยอดเงินชัดเจน กรุณากรอกเอง</span>';
-        }
-      } catch (ocrErr) {
-        console.warn('OCR Error:', ocrErr);
-        if (ocrStatus) {
-          ocrStatus.innerHTML = '<i class="fa-solid fa-circle-info text-[#8C857B]"></i> <span class="text-[#6E6A63]">ไม่พบตัวเลขยอดเงินชัดเจน กรุณากรอกเอง</span>';
-        }
+        ocrStatus.innerHTML = '<i class="fa-solid fa-circle-info text-[#8C857B]"></i> <span class="text-[#6E6A63]">สแกนไม่ชัดเจน กรุณากรอกเอง</span>';
+      } catch (e) {
+        ocrStatus.innerHTML = '<i class="fa-solid fa-circle-info text-[#8C857B]"></i> <span class="text-[#6E6A63]">ไม่พบตัวเลข กรุณากรอกเอง</span>';
       }
     }
 
     function parseTargetedReceiptZones(prodText, amtText, noteText) {
       const upperProd = (prodText + ' ' + amtText).toUpperCase();
+      let fuelType = '', productLabel = '';
+      
+      if (upperProd.indexOf('95') !== -1 || prodText.indexOf('โซฮอล์') !== -1) { fuelType = 'โซฮอล์ 95'; productLabel = 'PT MAX แก๊สโซฮอล์ 95'; } 
+      else if (upperProd.indexOf('LPG') !== -1 || upperProd.indexOf('LP6') !== -1 || upperProd.indexOf('000011') !== -1) { fuelType = 'LPG'; productLabel = 'PT MAX LPG'; } 
+      else if (upperProd.indexOf('E20') !== -1) { fuelType = 'E20'; productLabel = 'PT MAX E20'; } 
+      else if (upperProd.indexOf('NGV') !== -1) { fuelType = 'NGV'; productLabel = 'PT MAX NGV'; }
 
-      // 1. ตรวจจับรายการสินค้าและชนิดเชื้อเพลิง (วงกลมที่ 1: PT MAX LPG)
-      let fuelType = '';
-      let productLabel = '';
-      if (upperProd.indexOf('LPG') !== -1 || upperProd.indexOf('LP6') !== -1 || upperProd.indexOf('MAX') !== -1) {
-        fuelType = 'LPG';
-        productLabel = 'PT MAX LPG';
-      } else if (upperProd.indexOf('E20') !== -1) {
-        fuelType = 'E20';
-        productLabel = 'E20';
-      } else if (upperProd.indexOf('NGV') !== -1) {
-        fuelType = 'NGV';
-        productLabel = 'NGV';
-      }
-
-      // 2. ตรวจจับหมายเหตุ 2 / ทะเบียนรถ (วงกลมที่ 3: หมายเหตุ2 : ฌถ6490 กรุงเทพมหานคร)
       let extractedNote = '';
       if (noteText) {
         const lines = noteText.split(/[\r\n]+/).map(function(l) { return l.trim(); }).filter(Boolean);
         for (let i = 0; i < lines.length; i++) {
-          const line = lines[i];
-          // ค้นหาบรรทัดที่มีคำว่า หมายเหตุ2 หรือมีตัวเลขทะเบียนรถ 3-4 หลัก หรือคำว่า กรุงเทพ
-          if (/หมายเหตุ\s*2|กรุงเทพ|[ก-ฮ]{1,3}\s*\d{3,4}/.test(line) && !/Maxcard/i.test(line)) {
-            extractedNote = line
-              .replace(/^.*หมายเหตุ\s*2\s*[:：;.\-]?\s*/i, '')
-              .replace(/[|_=\[\]]/g, '')
-              .trim();
+          if (/หมายเหตุ\s*2|กรุงเทพ|[ก-ฮ]{1,3}\s*\d{3,4}/.test(lines[i]) && !/Maxcard/i.test(lines[i])) {
+            extractedNote = lines[i].replace(/^.*หมายเหตุ\s*2\s*[:：;.\-]?\s*/i, '').replace(/[|_=\[\]]/g, '').trim();
             if (extractedNote.length >= 3) break;
           }
         }
@@ -876,149 +585,91 @@
       const detailsParts = [];
       if (productLabel) detailsParts.push(productLabel);
       if (extractedNote) detailsParts.push(extractedNote);
-      const detailsText = detailsParts.join(' • ');
-
-      // 3. ตรวจจับยอดเงินจากคอลัมน์ขวาสุด (วงกลมที่ 2: 391.40, 25.61, 365.79)
-      // แปลงตัวอักษรที่ OCR มักอ่านเพี้ยนจากตัวเลขกลับเป็นตัวเลข
-      const normalizedAmt = (amtText || '')
-        .replace(/[,]/g, '.')
-        .replace(/[OQo]/g, '0')
-        .replace(/[Il|!]/g, '1')
-        .replace(/[S$]/g, '5')
-        .replace(/(\d)\s+\.\s*(\d{2})/g, '$1.$2')
-        .replace(/(\d)\.\s+(\d{2})/g, '$1.$2');
-
+      
+      // ลบลูกน้ำหลักพันอย่างระมัดระวัง (เช่น 1,500.00 -> 1500.00) และเคลียร์อักขระแปลกประหลาด
+      let cleanedAmt = (amtText || '').replace(/[OQo]/g, '0').replace(/[Il|!]/g, '1');
+      cleanedAmt = cleanedAmt.replace(/(\d)\s*,\s*(\d{3})(?!\d)/g, '$1$2'); 
+      
       const candidates = [];
-      // จับตัวเลขทศนิยม 2 ตำแหน่ง เช่น 391.40, 365.79, 25.61 (ไม่ต้องใช้ \b)
-      const decRegex = /(\d{2,5})\.(\d{2})(?!\d)/g;
+      const decRegex = /(\d{2,6})\.(\d{2})(?!\d)/g;
       let match;
-      while ((match = decRegex.exec(normalizedAmt)) !== null) {
+      while ((match = decRegex.exec(cleanedAmt)) !== null) {
         const val = parseFloat(match[1] + '.' + match[2]);
-        if (val >= 20 && val <= 20000 && (val < 1990 || val > 2600) && Math.floor(val) !== 5278 && Math.floor(val) !== 5279) {
-          candidates.push(val);
-        }
+        if (val >= 15 && val <= 100000 && Math.floor(val) !== 5278 && Math.floor(val) !== 5279) candidates.push(Number(val.toFixed(2)));
       }
 
-      // กรณี OCR มองข้ามจุดทศนิยม (เช่นอ่าน 391.40 เป็น 39140 และ 365.79 เป็น 36579)
-      if (candidates.length === 0) {
-        const rawDigitsRegex = /(\d{4,6})/g;
-        let dm;
-        while ((dm = rawDigitsRegex.exec(normalizedAmt)) !== null) {
-          const rawStr = dm[1];
-          const val = parseFloat(rawStr.slice(0, rawStr.length - 2) + '.' + rawStr.slice(-2));
-          if (val >= 30 && val <= 15000 && (val < 1990 || val > 2600)) {
-            candidates.push(val);
-          }
-        }
-      }
-
-      // เรียงลำดับตัวเลขที่ไม่ซ้ำจากมากไปน้อย
       const uniqueList = [];
-      candidates.forEach(function(n) {
-        const f = Number(n.toFixed(2));
-        if (uniqueList.indexOf(f) === -1) uniqueList.push(f);
-      });
+      candidates.forEach(function(n) { if (uniqueList.indexOf(n) === -1) uniqueList.push(n); });
       uniqueList.sort(function(a, b) { return b - a; });
 
-      let bestAmount = 0;
-
-      // กฎที่ 1: เช็คความสัมพันธ์ VAT 7% (365.79 * 1.07 = 391.40) แม่นยำ 100%
+      let vatVerifiedTotal = 0;
       for (let i = 0; i < uniqueList.length; i++) {
-        for (let j = 0; j < uniqueList.length; j++) {
-          if (i !== j && uniqueList[i] > uniqueList[j]) {
-            if (Math.abs(uniqueList[i] - (uniqueList[j] * 1.07)) <= 0.25) {
-              bestAmount = uniqueList[i];
-              break;
-            }
-          }
+        for (let j = i + 1; j < uniqueList.length; j++) {
+          const a = uniqueList[i], b = uniqueList[j];
+          if (Math.abs(a - (b * 1.07)) <= 0.45) { vatVerifiedTotal = a; break; }
+          // คำนวณยอดกลับจากยอดก่อนภาษี + ภาษี
+          if (Math.abs(b - (a * 0.07)) <= 0.45) { vatVerifiedTotal = Number((a + b).toFixed(2)); break; }
         }
-        if (bestAmount > 0) break;
+        if (vatVerifiedTotal > 0) break;
       }
 
-      // กฎที่ 2: เช็คตัวเลขที่ปรากฏซ้ำ 2 ครั้งในคอลัมน์ขวาสุด (ช่องจำนวนเงิน 391.40 ด้านบน และ ช่องมูลค่ารวมภาษี 391.40 ด้านล่าง)
-      if (!bestAmount && candidates.length > 0) {
-        const counts = {};
-        candidates.forEach(function(n) {
-          const k = n.toFixed(2);
-          counts[k] = (counts[k] || 0) + 1;
-          if (counts[k] >= 2 && n > bestAmount) {
-            bestAmount = n;
-          }
-        });
-      }
-
-      // กฎที่ 3: ใช้ค่ามากที่สุดในคอลัมน์จำนวนเงิน (เพราะมูลค่ารวมภาษี 391.40 จะมากกว่ามูลค่าก่อนภาษี 365.79 และภาษี 25.61 เสมอ)
-      if (!bestAmount && uniqueList.length > 0) {
-        bestAmount = uniqueList[0];
+      // ตรวจสอบ fallback: บางทียอดก่อนภาษี 1401.87 โผล่ แต่รวมภาษี 1500.00 แหว่งเหลือ 500.00
+      if (!vatVerifiedTotal) {
+         for(let k=0; k<uniqueList.length; k++){
+            const expected = Number((uniqueList[k] * 1.07).toFixed(2));
+            for(let m=0; m<uniqueList.length; m++){
+               if(expected > uniqueList[k] && Math.abs((expected % 1000) - uniqueList[m]) <= 0.1) {
+                  vatVerifiedTotal = expected; break;
+               }
+            }
+            if(vatVerifiedTotal > 0) break;
+         }
       }
 
       return {
-        totalAmount: bestAmount,
+        totalAmount: vatVerifiedTotal > 0 ? vatVerifiedTotal : (uniqueList.length > 0 ? uniqueList[0] : 0),
         fuelType: fuelType,
-        detailsText: detailsText,
-        candidates: uniqueList
+        detailsText: detailsParts.join(' • ')
       };
     }
 
     function clearImage() {
-      compressedBase64 = '';
-      highResOcrDataUrl = '';
-      croppedTableOcrDataUrl = '';
-      zoneProductDataUrl = '';
-      zoneAmountDataUrl = '';
-      zoneNoteDataUrl = '';
-      compressedFileName = '';
-      document.getElementById('fileInput').value = '';
+      compressedBase64 = ''; compressedFileName = ''; document.getElementById('fileInput').value = '';
       document.getElementById('previewBox').classList.add('hidden');
-      const ocrStatus = document.getElementById('ocrStatusText');
-      if (ocrStatus) {
-        ocrStatus.classList.add('hidden');
-        ocrStatus.classList.remove('flex');
-      }
-      const candidatesBox = document.getElementById('ocrCandidatesBox');
-      if (candidatesBox) {
-        candidatesBox.classList.add('hidden');
-        candidatesBox.innerHTML = '';
-      }
+      document.getElementById('ocrStatusText').classList.add('hidden');
+    }
+    function viewFullImage(src) { document.getElementById('modalImgSrc').src = src; document.getElementById('imgModal').classList.remove('hidden'); }
+    function openSlipByIndex(idx) {
+      const r = records[idx];
+      if (r && r.fileUrl && r.fileUrl.startsWith('http')) window.open(r.fileUrl, '_blank');
+      else if (r && r.imageBase64) viewFullImage(r.imageBase64);
     }
 
     async function handleSubmit(e) {
       e.preventDefault();
       const btn = document.getElementById('submitBtn');
-      btn.disabled = true;
-      btn.innerHTML = '<i class="fa-solid fa-location-crosshairs fa-spin"></i> กำลังดึงพิกัด GPS ล่าสุด...';
+      btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> รอพิกัด GPS...';
 
       let coords;
-      try {
-        coords = await acquireMandatoryGPS(true);
-      } catch (gpsErr) {
-        showNotice('กรุณาเปิด Location (GPS) และอนุญาตสิทธิ์ก่อนบันทึกครับ', true);
-        btn.disabled = false;
-        btn.innerHTML = '<span>บันทึกข้อมูลเข้าสู่ระบบ</span> <i class="fa-solid fa-paper-plane text-[#E8C574] text-sm"></i>';
+      try { coords = await acquireMandatoryGPS(true); } 
+      catch (err) {
+        showNotice('กรุณาอนุญาตให้ดึงพิกัด GPS ก่อนบันทึก', true);
+        btn.disabled = false; btn.innerHTML = '<span>บันทึกข้อมูลเข้าสู่ระบบ</span> <i class="fa-solid fa-paper-plane text-[#E8C574]"></i>';
         return;
       }
 
-      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin text-amber-400"></i> กำลังซิงค์ข้อมูลเข้า Google Sheet...';
-
+      btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up fa-spin"></i> กำลังส่งข้อมูล...';
       const cat = document.getElementById('category').value;
-      const lat = coords.lat;
-      const lng = coords.lng;
+      const lat = coords.lat, lng = coords.lng;
 
       const item = {
-        id: 'EXP-' + Date.now(),
-        timestamp: new Date().toLocaleString('th-TH'),
-        date: document.getElementById('date').value,
-        category: cat,
+        id: 'EXP-' + Date.now(), timestamp: new Date().toLocaleString('th-TH'),
+        date: document.getElementById('date').value, category: cat,
         details: document.getElementById('details').value,
         locationName: document.getElementById('locationName').value || ('พิกัด ' + lat + ', ' + lng),
-        lat: lat,
-        lng: lng,
-        mapUrl: 'https://www.google.com/maps?q=' + lat + ',' + lng,
-        runFee: 0, cashCollected: 0, tollFee: 0, parkingFee: 0, tips: 0,
-        fuelType: '', fuelAmount: 0, amount: 0,
-        netExpense: 0, cashIn: 0,
-        imageBase64: compressedBase64,
-        imageName: compressedFileName
+        lat: lat, lng: lng, mapUrl: 'https://www.google.com/maps?q=' + lat + ',' + lng,
+        runFee: 0, cashCollected: 0, tollFee: 0, parkingFee: 0, tips: 0, fuelType: '', fuelAmount: 0, amount: 0,
+        netExpense: 0, cashIn: 0, imageBase64: compressedBase64, imageName: compressedFileName
       };
 
       if (cat === 'วิ่งงานรถ') {
@@ -1026,8 +677,7 @@
         item.cashCollected = parseFloat(document.getElementById('cashCollected').value || 0);
         item.tollFee = parseFloat(document.getElementById('tollFee').value || 0);
         item.parkingFee = parseFloat(document.getElementById('parkingFee').value || 0);
-        const tipsEl = document.getElementById('tipsAmount');
-        item.tips = parseFloat(tipsEl ? (tipsEl.value || 0) : 0);
+        item.tips = parseFloat(document.getElementById('tipsAmount') ? (document.getElementById('tipsAmount').value || 0) : 0);
         item.netExpense = item.runFee + item.tollFee + item.parkingFee + item.tips;
         item.cashIn = item.cashCollected;
       } else if (cat === 'เชื้อเพลิง') {
@@ -1044,59 +694,47 @@
       }
 
       try {
-        const response = await fetch(GAS_WEB_APP_URL, {
-          method: 'POST',
-          redirect: 'follow',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify({ action: 'saveExpense', data: item })
-        });
-
+        const response = await fetch(GAS_WEB_APP_URL, { method: 'POST', redirect: 'follow', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'saveExpense', data: item }) });
         const result = await response.json();
 
         if (result.status === 'success') {
           if (result.fileUrl) item.fileUrl = result.fileUrl;
-          records.unshift(item);
-          localStorage.setItem('office_expenses_v1', JSON.stringify(records));
+          records.unshift(item); localStorage.setItem('office_expenses_v1', JSON.stringify(records));
           renderHistory();
-
-          document.getElementById('details').value = '';
-          document.getElementById('locationName').value = '';
-          clearImage();
-          selectCategory(cat);
-          acquireMandatoryGPS(false);
-          showNotice('บันทึกข้อมูลลงแท็บ WepApp สำเร็จ!', false);
-          btn.innerHTML = '<i class="fa-solid fa-circle-check text-[#88B08B]"></i> <span>บันทึกสำเร็จ!</span>';
+          
+          document.getElementById('details').value = ''; document.getElementById('locationName').value = '';
+          clearImage(); selectCategory(cat); acquireMandatoryGPS(false);
+          
+          showNotice('บันทึกสำเร็จ!', false);
+          
+          // Switch to history tab automatically upon success
+          switchTab('history');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          
+          btn.innerHTML = '<i class="fa-solid fa-check"></i> บันทึกเสร็จสิ้น';
         } else {
-          showNotice('เกิดข้อผิดพลาด: ' + (result.message || 'ไม่ทราบสาเหตุ'), true);
-          btn.innerHTML = '<i class="fa-solid fa-triangle-exclamation text-[#E57373]"></i> <span>ลองใหม่อีกครั้ง</span>';
+          showNotice('เกิดข้อผิดพลาด: ' + (result.message || 'Unknown'), true);
+          btn.innerHTML = 'ลองใหม่อีกครั้ง';
         }
       } catch (err) {
-        console.error('Error:', err);
-        showNotice('ไม่สามารถติดต่อ Google Sheet ได้ กรุณาตรวจสอบสิทธิ์', true);
-        btn.innerHTML = '<span>บันทึกข้อมูลเข้าสู่ระบบ</span> <i class="fa-solid fa-paper-plane text-[#E8C574]"></i>';
+        showNotice('ไม่สามารถติดต่อ Google Sheet ได้', true);
+        btn.innerHTML = 'บันทึกข้อมูลเข้าสู่ระบบ';
       } finally {
         btn.disabled = false;
-        setTimeout(function() {
-          btn.innerHTML = '<span>บันทึกข้อมูลเข้าสู่ระบบ</span> <i class="fa-solid fa-paper-plane text-[#E8C574] text-sm"></i>';
-        }, 2500);
+        setTimeout(function() { btn.innerHTML = '<span>บันทึกข้อมูลเข้าสู่ระบบ</span> <i class="fa-solid fa-paper-plane text-[#E8C574]"></i>'; }, 2000);
       }
     }
 
     async function fetchFromSheet() {
-      const icon = document.getElementById('refreshIcon');
-      icon.classList.add('fa-spin');
+      const icon = document.getElementById('refreshIcon'); icon.classList.add('fa-spin');
       try {
         const res = await fetch(GAS_WEB_APP_URL + '?action=getExpenses', { redirect: 'follow' });
         const json = await res.json();
         if (json && json.status === 'success' && Array.isArray(json.data)) {
-          records = json.data;
-          localStorage.setItem('office_expenses_v1', JSON.stringify(records));
-          renderHistory();
-          document.getElementById('syncText').textContent = 'ซิงค์กับฐานข้อมูล WepApp ล่าสุดแล้ว';
+          records = json.data; localStorage.setItem('office_expenses_v1', JSON.stringify(records));
+          renderHistory(); document.getElementById('syncText').textContent = 'ข้อมูลล่าสุดแล้ว';
         }
-      } catch (e) {
-        console.log('ใช้ข้อมูล LocalStorage ล่าสุด');
-      }
+      } catch (e) {}
       icon.classList.remove('fa-spin');
     }
 
@@ -1105,92 +743,31 @@
       document.getElementById('recordCount').textContent = records.length + ' รายการ';
 
       let totalExp = 0, totalCash = 0;
-      records.forEach(function(r) {
-        totalExp += Number(r.netExpense || 0);
-        totalCash += Number(r.cashIn || 0);
-      });
+      records.forEach(function(r) { totalExp += Number(r.netExpense || 0); totalCash += Number(r.cashIn || 0); });
 
       document.getElementById('sumExpense').textContent = '฿' + totalExp.toLocaleString('th-TH', { minimumFractionDigits: 2 });
       document.getElementById('sumCashIn').textContent = '฿' + totalCash.toLocaleString('th-TH', { minimumFractionDigits: 2 });
 
       if (records.length === 0) {
-        list.innerHTML = '<p class="text-center text-[#8C857B] text-sm py-12">ยังไม่มีรายการบันทึก</p>';
-        return;
+        list.innerHTML = '<p class="text-center text-[#8C857B] text-sm py-10">ยังไม่มีรายการ</p>'; return;
       }
 
       list.innerHTML = records.map(function(r, idx) {
-        const fuelBadge = r.fuelType ? (' • ' + r.fuelType) : '';
-        const locHtml = (r.locationName || r.mapUrl)
-          ? '<a href="' + (r.mapUrl || '#') + '" target="_blank" class="inline-flex items-center gap-1.5 text-[11px] text-[#5A554C] hover:text-[#C84B31] bg-[#F4EFE6] hover:bg-[#EAE2D3] px-2.5 py-1 rounded-md border border-[#DCD3C0] transition"><i class="fa-solid fa-location-dot text-[#C84B31]"></i> ' + (r.locationName || 'เปิดแผนที่ GPS') + '</a>'
-          : '';
-        const expHtml = Number(r.netExpense) > 0
-          ? '<p class="text-sm font-bold text-[#C84B31]">-฿' + Number(r.netExpense).toLocaleString('th-TH', { minimumFractionDigits: 2 }) + '</p>'
-          : '';
-        const cashHtml = Number(r.cashIn) > 0
-          ? '<p class="text-xs font-bold text-[#4E6650]">+฿' + Number(r.cashIn).toLocaleString('th-TH', { minimumFractionDigits: 2 }) + '</p>'
-          : '';
-        const slipHtml = (r.imageBase64 || r.fileUrl)
-          ? '<button type="button" onclick="openSlipByIndex(' + idx + ')" class="mt-1.5 inline-flex items-center gap-1 text-[11px] font-semibold text-[#263547] hover:text-[#C84B31] bg-[#F2ECE1] px-2.5 py-0.5 rounded border border-[#DCD3C0] transition"><i class="fa-solid fa-receipt"></i> ดูใบเสร็จ</button>'
-          : '';
+        const fBadge = r.fuelType ? (' • ' + r.fuelType) : '';
+        const locHtml = (r.locationName || r.mapUrl) ? '<div class="mt-1.5"><a href="' + (r.mapUrl || '#') + '" target="_blank" class="inline-flex items-center gap-1.5 text-[10px] text-[#C84B31] bg-[#C84B31]/10 px-2.5 py-1 rounded-md"><i class="fa-solid fa-location-dot"></i> <span class="truncate max-w-[200px]">' + (r.locationName || 'พิกัด GPS') + '</span></a></div>' : '';
+        const expHtml = Number(r.netExpense) > 0 ? '<p class="text-sm font-bold text-[#C84B31]">-฿' + Number(r.netExpense).toLocaleString() + '</p>' : '';
+        const cashHtml = Number(r.cashIn) > 0 ? '<p class="text-[11px] font-bold text-[#5F7A61]">+฿' + Number(r.cashIn).toLocaleString() + '</p>' : '';
+        const sHtml = (r.imageBase64 || r.fileUrl) ? '<button type="button" onclick="openSlipByIndex(' + idx + ')" class="mt-2 inline-flex items-center gap-1.5 text-[10px] font-bold text-[#2B2B2B] bg-[#E5DEC9]/50 hover:bg-[#DCD3C0] px-2.5 py-1 rounded border border-[#DCD3C0] transition"><i class="fa-solid fa-receipt"></i> ดูใบเสร็จ</button>' : '';
 
-        return [
-          '<div class="p-4 sm:p-5 hover:bg-[#F9F6F0]/80 transition flex items-start justify-between gap-4">',
-          '  <div class="space-y-1.5">',
-          '    <div class="flex items-center gap-2.5">',
-          '      <span class="text-[11px] font-bold px-2.5 py-0.5 rounded bg-[#263547] text-[#F9F6F0] tracking-wide">' + r.category + fuelBadge + '</span>',
-          '      <span class="text-xs text-[#8C857B] font-medium">' + (r.date || '') + '</span>',
-          '    </div>',
-          '    <p class="text-sm font-medium text-[#2B2B2B] leading-relaxed">' + (r.details || '-') + '</p>',
-          '    ' + locHtml,
-          '  </div>',
-          '  <div class="text-right shrink-0">',
-          '    ' + expHtml,
-          '    ' + cashHtml,
-          '    ' + slipHtml,
-          '  </div>',
-          '</div>'
-        ].join('');
+        return '<div class="p-4 hover:bg-[#F9F6F0]/50 transition flex items-start justify-between gap-3"><div class="flex-1 min-w-0 space-y-1"><div class="flex items-center gap-2 flex-wrap"><span class="text-[10px] font-bold px-2 py-0.5 rounded bg-[#263547] text-white">' + r.category + fBadge + '</span><span class="text-[10px] text-[#8C857B]">' + (r.date || '') + '</span></div><p class="text-xs font-semibold text-[#2B2B2B] leading-relaxed pr-2">' + (r.details || '-') + '</p>' + locHtml + '</div><div class="text-right shrink-0">' + expHtml + cashHtml + sHtml + '</div></div>';
       }).join('');
     }
 
-    function openSlipByIndex(idx) {
-      const r = records[idx];
-      if (!r) return;
-      if (r.fileUrl && r.fileUrl.indexOf('http') === 0) {
-        window.open(r.fileUrl, '_blank');
-      } else if (r.imageBase64) {
-        viewFullImage(r.imageBase64);
-      }
-    }
-
-    function viewFullImage(src) {
-      document.getElementById('modalImgSrc').src = src;
-      document.getElementById('imgModal').classList.remove('hidden');
-    }
-
     function exportCSV() {
-      if (records.length === 0) {
-        showNotice('ยังไม่มีข้อมูลสำหรับส่งออก', true);
-        return;
-      }
-      const headers = ['วันที่', 'ประเภท', 'รายละเอียด', 'สถานที่', 'พิกัดแผนที่', 'รายจ่ายสุทธิ', 'รายรับ/เงินสด'];
-      const rows = records.map(function(r) {
-        return [
-          r.date,
-          r.category,
-          '"' + String(r.details || '').replace(/"/g, '""') + '"',
-          '"' + String(r.locationName || '').replace(/"/g, '""') + '"',
-          r.mapUrl || '',
-          r.netExpense || 0,
-          r.cashIn || 0
-        ];
-      });
-      const csv = '\uFEFF' + [headers.join(',')].concat(rows.map(function(e) { return e.join(','); })).join('\n');
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = 'office_expenses_' + new Date().toISOString().slice(0, 10) + '.csv';
-      a.click();
+      if (records.length === 0) return showNotice('ยังไม่มีข้อมูล', true);
+      const csv = '\uFEFF' + ['วันที่,ประเภท,รายละเอียด,สถานที่,พิกัดแผนที่,รายจ่ายสุทธิ,รายรับ/เงินสด'].concat(records.map(r => [r.date, r.category, '"' + String(r.details || '').replace(/"/g, '""') + '"', '"' + String(r.locationName || '').replace(/"/g, '""') + '"', r.mapUrl || '', r.netExpense || 0, r.cashIn || 0].join(','))).join('\n');
+      const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
+      a.download = 'office_expenses_' + new Date().toISOString().slice(0, 10) + '.csv'; a.click();
     }
   </script>
 </body>
