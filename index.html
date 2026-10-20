@@ -173,8 +173,8 @@
         </div>
     </main>
 
-    <!-- TAB: FORM -->
-    <main id="tab-form" class="tab-content p-4 max-w-xl mx-auto pt-2">
+    <!-- TAB 1: FORM -->
+    <div id="tab-form" class="tab-content active p-4 max-w-md mx-auto pt-2">
         
         <!-- Edit Mode Banner -->
         <div id="editHeaderBox" class="hidden bg-yellow-50 border border-yellow-200 p-3 rounded-xl flex items-center justify-between mb-4 shadow-sm">
@@ -300,8 +300,13 @@
                 </button>
             </div>
         </form>
-    </main>
+    </div>
 
+    <!-- TAB 2: HISTORY -->
+    <div id="tab-history" class="tab-content max-w-md mx-auto pt-4 px-4">
+        
+        <!-- Summary Card 1: Total Expense -->
+        <div class="bg-[#2b3a4a] text-white p-5 rounded-[24px] mb-4 shadow-[0_8px_20px_rgba(43,58,74,0.15)] relative overflow-hidden">
     <!-- Modal Full Image -->
     <div id="imgModal" onclick="this.classList.add('hidden')" class="fixed inset-0 bg-black/90 z-50 hidden flex items-center justify-center p-4 backdrop-blur-sm">
         <img id="modalImgSrc" class="max-w-full max-h-[90vh] rounded-xl border border-white/20">
@@ -310,11 +315,11 @@
 
     <!-- Bottom Navigation -->
     <nav class="bottom-nav">
-        <div class="nav-item" id="nav-form" onclick="switchTab('form')">
+        <div class="nav-item active" id="nav-form" onclick="switchTab('form')">
             <svg viewBox="0 0 24 24"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
             บันทึกข้อมูล
         </div>
-        <div class="nav-item active" id="nav-history" onclick="switchTab('history')">
+        <div class="nav-item" id="nav-history" onclick="switchTab('history')">
             <svg viewBox="0 0 24 24"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
             ประวัติ & สรุปยอด
         </div>
