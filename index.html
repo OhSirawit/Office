@@ -42,6 +42,21 @@
 
     <div id="toast">ข้อความแจ้งเตือน</div>
 
+    <!-- Custom Delete Confirmation Modal -->
+    <div id="deleteModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-xs w-full p-6 shadow-xl text-center space-y-4">
+            <div class="w-12 h-12 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+            </div>
+            <h3 class="text-base font-bold text-gray-900">ยืนยันการลบรายการ?</h3>
+            <p class="text-xs text-gray-500">รายการนี้จะถูกลบออกจากฐานข้อมูลอย่างถาวรและไม่สามารถกู้คืนได้</p>
+            <div class="flex gap-2 pt-2">
+                <button type="button" onclick="closeDeleteModal()" class="flex-1 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-bold text-xs">ยกเลิก</button>
+                <button type="button" onclick="confirmDeleteRecord()" class="flex-1 py-2.5 bg-red-600 text-white rounded-xl font-bold text-xs shadow-sm">ยืนยันลบ</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Header -->
     <div class="max-w-md mx-auto bg-white rounded-b-3xl shadow-sm border-b border-gray-100 overflow-hidden relative z-40">
         <div class="p-4 flex items-center gap-3 bg-white">
@@ -125,7 +140,7 @@
                         </label>
                     </div>
                     <div id="tipFieldContainer" class="hidden col-span-2">
-                        <label class="block text-[11px] font-bold mb-1 text-[#c05640]">ยอดเงินทิป (บาท)</label>
+                        <label class="block text-[11px] font-bold mb-1 text-[#c05640]">ยอดเงินทิป (บาท) *ไม่รวมในรายรับ-จ่าย*</label>
                         <input type="number" id="tipFee" class="input-field py-2.5 border-[#c05640]/30" placeholder="0.00" step="0.01">
                     </div>
                 </div>
@@ -189,7 +204,7 @@
 
             <div class="flex gap-2 pt-2">
                 <button type="button" id="cancelEditBtn" onclick="cancelEdit()" class="hidden flex-[1] bg-gray-200 text-gray-700 py-3.5 rounded-xl font-bold text-[14px]">ยกเลิก</button>
-                <button type="button" id="deleteBtn" onclick="deleteRecord()" class="hidden flex-[1] bg-[#fee2e2] text-[#ef4444] py-3.5 rounded-xl font-bold text-[14px]">ลบรายการ</button>
+                <button type="button" id="deleteBtn" onclick="openDeleteModal()" class="hidden flex-[1] bg-[#fee2e2] text-[#ef4444] py-3.5 rounded-xl font-bold text-[14px]">ลบรายการ</button>
                 <button type="submit" id="submitBtn" class="flex-[2] btn-primary py-3.5 flex items-center justify-center gap-2 text-[14px] shadow-md">
                     บันทึกข้อมูลเข้าสู่ระบบ <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"/></svg>
                 </button>
@@ -282,11 +297,8 @@
 
         function toggleFields() {
             const cat = document.getElementById('category').value;
-            // ซ่อน/แสดง หมวดวิ่งงานรถ
             document.getElementById('carFields').classList.toggle('hidden', cat !== 'วิ่งงานรถ');
-            // ซ่อน/แสดง หมวดเชื้อเพลิง
             document.getElementById('fuelFields').classList.toggle('hidden', cat !== 'เชื้อเพลิง');
-            // ซ่อน/แสดง หมวดอื่นๆ (ที่มีเฉพาะช่องกรอกยอดเงิน)
             const useOtherFields = ['เบิกเงิน', 'ล้างรถ', 'คืนเงิน', 'ฝากซื้อของ', 'อื่นๆ'].includes(cat);
             document.getElementById('otherFields').classList.toggle('hidden', !useOtherFields);
         }
@@ -306,17 +318,17 @@
             
             document.getElementById('previewContainer').classList.remove('hidden');
             document.getElementById('imageNameDisplay').innerText = file.name;
-            document.getElementById('ocrStatus').innerHTML = '<span class="text-blue-500">✨ กำลังเตรียมระบบ...</span>';
+            document.getElementById('ocrStatus').innerHTML = '<span class="text-blue-500">✨ กำลังเตรียมภาพสแกน...</span>';
             document.getElementById('imageSizeDisplay').innerText = 'เตรียมไฟล์...';
             
             const reader = new FileReader();
             reader.onload = function(e) {
                 const img = new Image();
                 img.onload = function() {
-                    // ย่อภาพก่อนสแกน (เพิ่มความละเอียดเป็น 2048 เพื่อให้อ่านบิล A4 ตัวหนังสือเล็กๆ ได้ชัดเจนขึ้น)
+                    // 1. สร้างภาพสำหรับอัปโหลดเก็บลง Google Drive (ย่อขนาดพอเหมาะ)
                     const canvas = document.createElement('canvas');
                     let w = img.width, h = img.height;
-                    const MAX_SIZE = 2048; 
+                    const MAX_SIZE = 1600; 
                     if (w > h && w > MAX_SIZE) { h *= MAX_SIZE / w; w = MAX_SIZE; }
                     else if (h > MAX_SIZE) { w *= MAX_SIZE / h; h = MAX_SIZE; }
                     
@@ -324,15 +336,30 @@
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(img, 0, 0, w, h);
                     
-                    base64Image = canvas.toDataURL('image/jpeg', 0.8);
+                    base64Image = canvas.toDataURL('image/jpeg', 0.82);
                     document.getElementById('previewImage').src = base64Image;
                     
-                    // แสดงขนาดไฟล์คร่าวๆ ให้เห็นบนหน้าจอ
-                    const kb = Math.round(base64Image.length / 1024);
+                    const kb = Math.round(base64Image.length * 0.75 / 1024);
                     document.getElementById('imageSizeDisplay').innerText = `~${kb} KB`;
 
-                    // สแกนข้อความด้วย Tesseract
-                    scanReceiptText(base64Image);
+                    // 2. สร้างภาพ Crop เฉพาะโซนคอลัมน์ตัวเลขด้านขวา (ไม่เอาส่วนหัวที่มีวันที่ 2026-10-20)
+                    const numCanvas = document.createElement('canvas');
+                    const cropX = Math.floor(img.width * 0.68);
+                    const cropY = Math.floor(img.height * 0.42);
+                    const cropW = img.width - cropX;
+                    const cropH = Math.floor(img.height * 0.50);
+                    
+                    // ขยาย 2 เท่าเพื่อให้จุดทศนิยมและลูกน้ำคมชัดที่สุดสำหรับโหมด eng
+                    numCanvas.width = cropW * 2;
+                    numCanvas.height = cropH * 2;
+                    const numCtx = numCanvas.getContext('2d');
+                    numCtx.fillStyle = '#FFFFFF';
+                    numCtx.fillRect(0, 0, numCanvas.width, numCanvas.height);
+                    numCtx.drawImage(img, cropX, cropY, cropW, cropH, 0, 0, numCanvas.width, numCanvas.height);
+                    const croppedNumImage = numCanvas.toDataURL('image/jpeg', 0.95);
+
+                    // ส่งไปสแกนแบบ Dual-Pass
+                    scanReceiptText(base64Image, croppedNumImage);
                 };
                 img.src = e.target.result;
             };
@@ -345,80 +372,106 @@
             base64Image = '';
         }
 
-        // ฟังก์ชันอ่านใบเสร็จ 
-        async function scanReceiptText(imageSrc) {
+        async function scanReceiptText(fullImageSrc, croppedNumImageSrc) {
             const statusEl = document.getElementById('ocrStatus');
             try {
-                const result = await Tesseract.recognize(imageSrc, 'tha+eng', {
+                // รอบที่ 1: สแกนเฉพาะคอลัมน์ตัวเลขฝั่งขวาด้วยภาษาอังกฤษล้วน (eng) เพื่อความแม่นยำ 100%
+                statusEl.innerHTML = `<span class="text-blue-500">✨ กำลังดึงยอดเงินสุทธิ...</span>`;
+                const numResult = await Tesseract.recognize(croppedNumImageSrc, 'eng');
+                const numText = numResult.data.text;
+
+                // รอบที่ 2: สแกนภาพเต็มด้วยไทย+อังกฤษ เพื่อหาประเภทน้ำมันและป้ายทะเบียนรถ
+                const fullResult = await Tesseract.recognize(fullImageSrc, 'tha+eng', {
                     logger: m => {
                         if (m.status === 'recognizing text') {
-                            statusEl.innerHTML = `<span class="text-blue-500">✨ กำลังสแกน... ${Math.round(m.progress * 100)}%</span>`;
+                            statusEl.innerHTML = `<span class="text-blue-500">✨ กำลังอ่านรายละเอียดบิล... ${Math.round(m.progress * 100)}%</span>`;
                         }
                     }
                 });
                 
-                const text = result.data.text;
+                const fullText = fullResult.data.text;
                 
-                // 1. หาชนิดเชื้อเพลิง (ปรับ Keyword ให้ครอบคลุมมากขึ้น แค่เจอคำว่า LPG ก็สลับโหมดให้เลย)
-                const isFuel = text.match(/(PT\s*MAX|LPG|E20|แก๊สโซฮอล์|NGV|เชื้อเพลิง)/i);
-                if(isFuel) {
+                // 1. ตรวจสอบว่าเป็นบิลเชื้อเพลิงหรือไม่ (เช็คจากคำสำคัญในบิล PT / Olympus / Petroleum)
+                const isFuelBill = /(PT\s*MAX|Petroleum|Olympus|โอลิมปัส|ปิโตรเลียม|Maxcard|LPG|E20|แก๊สโซฮอล์|โซฮอล์|NGV|เชื้อเพลิง)/i.test(fullText);
+                if (isFuelBill) {
                     document.getElementById('category').value = 'เชื้อเพลิง';
                     toggleFields();
-                    const typeMatch = text.match(/(LPG|E20|แก๊สโซฮอล์\s*95|NGV)/i);
-                    if(typeMatch) {
-                        let fType = typeMatch[1].toUpperCase().replace(/\s+/g, ' ');
-                        if(fType.includes('95')) fType = 'แก๊สโซฮอล์ 95';
-                        document.getElementById('fuelType').value = fType;
+                    
+                    // จำแนกชนิดเชื้อเพลิง
+                    if (/LPG/i.test(fullText)) {
+                        document.getElementById('fuelType').value = 'LPG';
+                    } else if (/(95|โซฮอล์|แก๊สโซฮอล์)/i.test(fullText)) {
+                        document.getElementById('fuelType').value = 'แก๊สโซฮอล์ 95';
+                    } else if (/E20/i.test(fullText)) {
+                        document.getElementById('fuelType').value = 'E20';
+                    } else if (/NGV/i.test(fullText)) {
+                        document.getElementById('fuelType').value = 'NGV';
                     }
                 }
 
-                // 2. หารายละเอียดเพิ่มเติม (ทะเบียนรถจาก "หมายเหตุ 2 :")
-                const remarkMatch = text.match(/หมายเหตุ\s*2\s*[:;]\s*(.+)/);
+                // 2. ดึงทะเบียนรถจาก "หมายเหตุ 2 :"
+                const remarkMatch = fullText.match(/หมายเหตุ\s*2\s*[:;\.]?\s*([^\n\r]+)/i);
                 if (remarkMatch && remarkMatch[1]) {
-                    const licensePlate = remarkMatch[1].trim();
+                    let licensePlate = remarkMatch[1].trim();
+                    // แก้ปัญหา OCR อ่าน ฮย เป็น ยย
+                    licensePlate = licensePlate.replace(/^ยย\s+/, 'ฮย ');
                     const detailsInput = document.getElementById('details');
                     if (!detailsInput.value.includes(licensePlate)) {
                         detailsInput.value = detailsInput.value ? detailsInput.value + ' ' + licensePlate : licensePlate;
                     }
                 }
 
-                // 3. หายอดเงิน โดยเจาะจงจากช่อง "มูลค่ารวมภาษี" หรือหาค่าสูงสุด
+                // 3. สกัดตัวเลขยอดเงิน (กรองวันที่ เช่น 2026-10-20 ออกก่อนเพื่อป้องกันความผิดพลาด)
+                const cleanFullText = fullText.replace(/\d{4}\s*[-/\.]\s*\d{2}\s*[-/\.]\s*\d{2}/g, '');
                 let finalAmount = 0;
-                
-                const taxMatch = text.match(/รวมภาษี[^\d]*([\d,]+\.\d{2})/);
-                if (taxMatch) {
-                    finalAmount = parseFloat(taxMatch[1].replace(/,/g, ''));
-                } else {
-                    const numMatch = text.match(/(\d{1,3}(?:,\d{3})*\.\d{2})/g);
-                    if(numMatch && numMatch.length > 0) {
-                        const numbers = numMatch.map(n => parseFloat(n.replace(/,/g, '')));
-                        finalAmount = Math.max(...numbers);
+
+                // ค้นหาตัวเลขทศนิยม 2 ตำแหน่งจากภาพ Crop ฝั่งขวา (แม่นยำที่สุดสำหรับช่องจำนวนเงินและมูลค่ารวมภาษี)
+                const cropMatches = numText.replace(/,/g, '').match(/\b\d{2,6}\.\d{2}\b/g);
+                if (cropMatches && cropMatches.length > 0) {
+                    const validNums = cropMatches
+                        .map(n => parseFloat(n))
+                        .filter(n => n > 0 && n < 100000);
+                    if (validNums.length > 0) {
+                        finalAmount = Math.max(...validNums);
+                    }
+                }
+
+                // หากจากภาพ Crop ยังไม่พบ ให้ค้นหาจากคำว่า "รวมภาษี" ในภาพเต็ม
+                if (finalAmount === 0) {
+                    const taxMatch = cleanFullText.match(/รวมภาษี[^\d\n]*([\d,]+\.\d{2})/);
+                    if (taxMatch) {
+                        finalAmount = parseFloat(taxMatch[1].replace(/,/g, ''));
+                    } else {
+                        const allMatches = cleanFullText.replace(/,/g, '').match(/\b\d{2,6}\.\d{2}\b/g);
+                        if (allMatches && allMatches.length > 0) {
+                            const nums = allMatches.map(n => parseFloat(n)).filter(n => n > 15 && n < 100000);
+                            if (nums.length > 0) finalAmount = Math.max(...nums);
+                        }
                     }
                 }
                 
-                if(finalAmount > 0) {
-                    // นำยอดเงินไปใส่ให้ถูกช่อง
-                    if(document.getElementById('category').value === 'เชื้อเพลิง') {
-                        document.getElementById('fuelAmount').value = finalAmount;
-                    } else if(document.getElementById('category').value === 'วิ่งงานรถ') {
-                        document.getElementById('runFee').value = finalAmount;
+                // 4. นำยอดเงินไปใส่ในช่องตามประเภท
+                if (finalAmount > 0) {
+                    const currentCat = document.getElementById('category').value;
+                    if (currentCat === 'เชื้อเพลิง') {
+                        document.getElementById('fuelAmount').value = finalAmount.toFixed(2);
+                    } else if (currentCat === 'วิ่งงานรถ') {
+                        document.getElementById('runFee').value = finalAmount.toFixed(2);
                     } else {
-                        document.getElementById('amount').value = finalAmount;
-                        // ถ้ายังไม่ได้เลือกหมวดหมู่ ให้เปิดช่อง otherFields รอไว้ให้เห็นยอดเงิน
-                        if(!document.getElementById('category').value) {
+                        document.getElementById('amount').value = finalAmount.toFixed(2);
+                        if (!currentCat) {
                             document.getElementById('otherFields').classList.remove('hidden');
                         }
                     }
-                    statusEl.innerHTML = `<span class="text-green-600 font-bold">ดึงยอดสำเร็จ: ฿${finalAmount.toFixed(2)}</span>`;
+                    statusEl.innerHTML = `<span class="text-green-600 font-bold">✅ ดึงยอดสำเร็จ: ฿${finalAmount.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>`;
                 } else {
-                    statusEl.innerHTML = '<span class="text-red-500 font-bold">ไม่พบยอดเงิน กรุณากรอกเอง</span>';
+                    statusEl.innerHTML = '<span class="text-red-500 font-bold">ไม่พบยอดเงินชัดเจน กรุณากรอกเอง</span>';
                 }
             } catch (err) {
                 statusEl.innerHTML = '<span class="text-red-500 font-bold">สแกนล้มเหลว กรุณากรอกเอง</span>';
             }
         }
 
-        // จัดรูปแบบวันเวลา
         function formatDateTimeThai(ts) {
             if(!ts) return '';
             const parts = ts.split(' ');
@@ -494,7 +547,6 @@
                     const dateDisplay = formatDateTimeThai(r.timestamp);
                     const badgeColor = 'bg-[#2b3a4a]'; 
 
-                    // จัดการรูปแบบที่อยู่
                     const locationDisplay = r.locationName && r.locationName !== 'พิกัด GPS' && r.locationName !== '-' 
                         ? r.locationName 
                         : (r.mapUrl && r.mapUrl !== '-' ? 'พิกัด GPS' : '');
@@ -557,7 +609,6 @@
                 document.getElementById('tollFee').value = r.tollFee || '';
                 document.getElementById('parkingFee').value = r.parkingFee || '';
                 
-                // ตั้งค่าทิป
                 if (r.tips && Number(r.tips) > 0) {
                     document.querySelector('input[name="tipOption"][value="มีทิปพิเศษ"]').checked = true;
                     document.getElementById('tipFee').value = r.tips;
@@ -596,11 +647,9 @@
             document.getElementById('editId').value = '';
             document.getElementById('dateInput').valueAsDate = new Date();
             
-            // คืนค่าหมวดหมู่ให้ว่าง
             document.getElementById('category').value = "";
             toggleFields(); 
             
-            // คืนค่าทิป
             document.querySelector('input[name="tipOption"][value="ไม่มีทิป"]').checked = true;
             toggleTipField();
             
@@ -612,9 +661,20 @@
             document.getElementById('submitBtn').innerHTML = 'บันทึกข้อมูลเข้าสู่ระบบ';
         }
 
-        async function deleteRecord() {
+        function openDeleteModal() {
             const id = document.getElementById('editId').value;
-            if(!id || !confirm('⚠️ ยืนยันการลบรายการนี้ถาวรออกจากฐานข้อมูล?')) return;
+            if (!id) return;
+            document.getElementById('deleteModal').classList.remove('hidden');
+        }
+
+        function closeDeleteModal() {
+            document.getElementById('deleteModal').classList.add('hidden');
+        }
+
+        async function confirmDeleteRecord() {
+            closeDeleteModal();
+            const id = document.getElementById('editId').value;
+            if(!id) return;
 
             const btn = document.getElementById('deleteBtn');
             btn.innerHTML = 'กำลังลบ...';
@@ -692,7 +752,6 @@
                 let run=0, cashCol=0, toll=0, park=0, fuelAmt=0, otherAmt=0, net=0, cashIn=0, tips=0;
                 let fuelType = '';
 
-                // คำนวณยอดเงินตามหมวดหมู่
                 if (cat === 'วิ่งงานรถ') {
                     run = Number(document.getElementById('runFee').value||0);
                     cashCol = Number(document.getElementById('cashCollected').value||0);
@@ -703,19 +762,17 @@
                         tips = Number(document.getElementById('tipFee').value||0);
                     }
 
-                    net = run + toll + park; // ยอดรายจ่าย ไม่นำทิปมารวม
+                    net = run + toll + park; // ไม่นำทิปมารวมในรายจ่ายสุทธิ
                     cashIn = cashCol;
                 } else if (cat === 'เชื้อเพลิง') {
                     fuelType = document.getElementById('fuelType').value;
                     fuelAmt = Number(document.getElementById('fuelAmount').value||0);
                     net = fuelAmt;
                 } else if (['เบิกเงิน', 'คืนเงิน'].includes(cat)) {
-                    // เบิกเงิน / คืนเงิน ให้นับเป็นรายรับ
                     otherAmt = Number(document.getElementById('amount').value||0);
                     cashIn = otherAmt;
                     net = 0;
                 } else {
-                    // ล้างรถ, ฝากซื้อของ, อื่นๆ ให้นับเป็นรายจ่าย
                     otherAmt = Number(document.getElementById('amount').value||0);
                     net = otherAmt;
                     cashIn = 0;
