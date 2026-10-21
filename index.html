@@ -391,7 +391,8 @@
             }
         }
 
-        document.getElementById('expenseForm').addEventListener('submit', async function(e) {
+        // จัดรูปแบบวันเวลา
+        function formatDateTimeThai(ts) {
             if(!ts) return '';
             const parts = ts.split(' ');
             const dateParts = parts[0].split('/'); 
