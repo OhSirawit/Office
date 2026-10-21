@@ -348,7 +348,6 @@
         async function scanReceiptText(imageSrc) {
             const statusEl = document.getElementById('ocrStatus');
             try {
-                // Tesseract.js v4 API
                 const result = await Tesseract.recognize(imageSrc, 'tha+eng', {
                     logger: m => {
                         if (m.status === 'recognizing text') {
@@ -358,9 +357,8 @@
                 });
                 
                 const text = result.data.text;
-                let amt = '';
                 
-                // เช็คชนิดเชื้อเพลิง
+                // ค้นหาชนิดเชื้อเพลิง
                 const ptMatch = text.match(/PT\s*MAX\s*(LPG|E20|แก๊สโซฮอล์ 95|NGV)/i);
                 if(ptMatch) {
                     document.getElementById('category').value = 'เชื้อเพลิง';
@@ -368,21 +366,23 @@
                     document.getElementById('fuelType').value = ptMatch[1].toUpperCase();
                 }
 
-                // ดึงตัวเลขยอดเงิน (ทศนิยม 2 ตำแหน่ง)
+                // ดึงตัวเลขที่มีทศนิยม 2 ตำแหน่ง "ทั้งหมด" ในบิล (ใช้ /g เพื่อหาทั้งหมด)
                 const numMatch = text.match(/(\d{1,3}(?:,\d{3})*\.\d{2})/g);
-                let finalAmount = 0;
                 
                 if(numMatch && numMatch.length > 0) {
-                    // เลือกตัวเลขที่มากที่สุดที่ดึงได้ หรือหาตัวที่ตรงกับ (VAT 7%)
+                    // แปลงชุดตัวเลขที่หาเจอเป็นตัวเลขทางคณิตศาสตร์
                     const numbers = numMatch.map(n => parseFloat(n.replace(/,/g, '')));
-                    finalAmount = Math.max(...numbers);
+                    
+                    // เลือก "ค่าที่มากที่สุด" ซึ่งมักจะเป็นยอดรวมสุทธิ (ข้ามพวกจำนวนลิตร หรือราคาต่อหน่วย)
+                    const maxVal = Math.max(...numbers);
                     
                     if(document.getElementById('category').value === 'เชื้อเพลิง') {
-                        document.getElementById('fuelAmount').value = finalAmount.toFixed(2);
+                        document.getElementById('fuelAmount').value = maxVal;
                     } else {
-                        document.getElementById('amount').value = finalAmount.toFixed(2);
+                        document.getElementById('amount').value = maxVal;
                     }
-                    statusEl.innerHTML = `<span class="text-green-600 font-bold">ดึงยอดสำเร็จ: ฿${finalAmount.toFixed(2)}</span>`;
+                    
+                    statusEl.innerHTML = `<span class="text-green-600 font-bold">ดึงยอดสำเร็จ: ฿${maxVal.toFixed(2)}</span>`;
                 } else {
                     statusEl.innerHTML = '<span class="text-red-500 font-bold">ไม่พบยอดเงิน กรุณากรอกเอง</span>';
                 }
@@ -391,7 +391,7 @@
             }
         }
 
-        function formatDateTimeThai(ts) {
+        document.getElementById('expenseForm').addEventListener('submit', async function(e) {
             if(!ts) return '';
             const parts = ts.split(' ');
             const dateParts = parts[0].split('/'); 
@@ -676,7 +676,7 @@
                         tips = Number(document.getElementById('tipFee').value||0);
                     }
 
-                    net = run + toll + park + tips; // นำทิปไปรวมในรายจ่ายสุทธิ
+                    net = run + toll + park; // แยกยอดทิปออก ไม่นำมารวมในรายจ่ายสุทธิ
                     cashIn = cashCol;
                 } else if (cat === 'เชื้อเพลิง') {
                     fuelType = document.getElementById('fuelType').value;
