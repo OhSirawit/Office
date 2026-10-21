@@ -6,7 +6,7 @@
     <title>บันทึกค่าใช้จ่ายออฟฟิศ</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.1.4/dist/tesseract.min.js"></script>
     <style>
         body { 
             font-family: 'Prompt', sans-serif; 
@@ -180,7 +180,7 @@
                 <label class="flex-1 flex flex-col items-center justify-center p-3 border-2 border-dashed border-[#c05640]/50 rounded-2xl text-[#c05640] cursor-pointer bg-[#fff6f4]/50 transition hover:bg-[#fff6f4]">
                     <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path></svg>
                     <span class="text-[12px] font-bold">แนบใบเสร็จ</span>
-                    <input type="file" id="receiptFile" accept="image/*" class="hidden" onchange="handleFileUpload(event)">
+                    <input type="file" id="receiptFile" accept="image/*,application/pdf" class="hidden" onchange="handleFileUpload(event)">
                 </label>
                 <div class="flex-1 flex items-center justify-center p-3 border border-gray-200 rounded-2xl bg-white gap-2 shadow-sm">
                     <input type="checkbox" id="saveGps" checked class="w-5 h-5 accent-[#2b3a4a] rounded">
@@ -200,6 +200,11 @@
                     </button>
                 </div>
                 <div id="ocrStatus" class="mt-3 text-center text-[12px] font-bold py-1.5 rounded-lg bg-white border border-gray-100 text-[#c05640]">รอการสแกนรูป...</div>
+                <div id="ocrCandidates" class="mt-2 text-center"></div>
+                <details class="mt-2">
+                    <summary class="text-[11px] text-gray-400 cursor-pointer text-center">ดูข้อความที่ระบบอ่านได้</summary>
+                    <pre id="ocrRaw" class="mt-1 text-[10px] text-gray-500 whitespace-pre-wrap bg-white border border-gray-100 rounded-lg p-2 max-h-40 overflow-auto"></pre>
+                </details>
             </div>
 
             <div class="flex gap-2 pt-2">
@@ -312,163 +317,455 @@
             }
         }
 
+        let ocrRunId = 0;
+        let lastOcrCands = [];
+
+        function setOcrStatus(html) {
+            document.getElementById('ocrStatus').innerHTML = html;
+        }
+
+        function clearOcrExtras() {
+            const box = document.getElementById('ocrCandidates');
+            const raw = document.getElementById('ocrRaw');
+            if (box) box.innerHTML = '';
+            if (raw) raw.textContent = '';
+            lastOcrCands = [];
+        }
+
+        // ---------- รองรับไฟล์ PDF ----------
+        let pdfjsReady = null;
+        function loadScriptOnce(src) {
+            return new Promise((resolve, reject) => {
+                const sc = document.createElement('script');
+                sc.src = src;
+                sc.onload = resolve;
+                sc.onerror = () => { sc.remove(); reject(new Error('โหลดสคริปต์ไม่ได้: ' + src)); };
+                document.head.appendChild(sc);
+            });
+        }
+        function loadPdfJs() {
+            if (pdfjsReady) return pdfjsReady;
+            pdfjsReady = (async () => {
+                if (window.pdfjsLib) return window.pdfjsLib;
+                // ลองหลายแหล่ง เผื่อแหล่งใดแหล่งหนึ่งโหลดไม่ได้
+                const sources = [
+                    ['https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js', 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'],
+                    ['https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js', 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js']
+                ];
+                let lastErr;
+                for (const [lib, worker] of sources) {
+                    try {
+                        await loadScriptOnce(lib);
+                        // ใส่ URL ของ worker ตรงๆ — pdf.js จัดการเรื่องข้ามโดเมนให้เอง
+                        window.pdfjsLib.GlobalWorkerOptions.workerSrc = worker;
+                        return window.pdfjsLib;
+                    } catch (e) { lastErr = e; }
+                }
+                throw lastErr || new Error('โหลดตัวอ่าน PDF ไม่สำเร็จ');
+            })();
+            pdfjsReady.catch(() => { pdfjsReady = null; });
+            return pdfjsReady;
+        }
+
+        async function handlePdfFile(file) {
+            const runId = ++ocrRunId;
+            try {
+                setOcrStatus('<span class="text-blue-500">📄 กำลังอ่านไฟล์ PDF...</span>');
+                const pdfjs = await loadPdfJs();
+                const doc = await pdfjs.getDocument({ data: await file.arrayBuffer() }).promise;
+                const pageCount = Math.min(doc.numPages, 3);
+                let allRows = [], textChars = 0, firstPage = null;
+
+                for (let n = 1; n <= pageCount; n++) {
+                    const page = await doc.getPage(n);
+                    if (n === 1) firstPage = page;
+                    const tc = await page.getTextContent();
+                    const items = tc.items.filter(it => it.str && it.str.trim());
+                    textChars += items.reduce((t, it) => t + it.str.trim().length, 0);
+                    items.sort((x, y) => y.transform[5] - x.transform[5] || x.transform[4] - y.transform[4]);
+                    const groups = [];
+                    for (const it of items) {
+                        const y = it.transform[5], tol = Math.max(2, (it.height || 8) * 0.5);
+                        const last = groups[groups.length - 1];
+                        if (last && Math.abs(y - last.y) <= tol) last.items.push(it);
+                        else groups.push({ y, items: [it] });
+                    }
+                    groups.forEach(g => allRows.push(g.items.sort((x, y) => x.transform[4] - y.transform[4]).map(i => i.str.trim()).join(' ')));
+                }
+                if (runId !== ocrRunId) return;
+
+                // วาดหน้าแรกเป็นรูป เพื่อโชว์ตัวอย่างและเก็บลง Drive
+                const renderPage = async (scale) => {
+                    const vp = firstPage.getViewport({ scale });
+                    const c = document.createElement('canvas');
+                    c.width = vp.width; c.height = vp.height;
+                    const cx = c.getContext('2d');
+                    cx.fillStyle = '#fff'; cx.fillRect(0, 0, c.width, c.height);
+                    await firstPage.render({ canvasContext: cx, viewport: vp }).promise;
+                    return c;
+                };
+                const base = firstPage.getViewport({ scale: 1 });
+                const prev = await renderPage(Math.min(2, 1600 / Math.max(base.width, base.height)));
+                base64Image = prev.toDataURL('image/jpeg', 0.82);
+                document.getElementById('previewImage').src = base64Image;
+                document.getElementById('imageSizeDisplay').innerText = `PDF ${doc.numPages} หน้า • ~${Math.round(base64Image.length * 0.75 / 1024)} KB`;
+
+                if (textChars >= 30) {
+                    // PDF ที่มีตัวหนังสือจริง → อ่านตรงๆ ไม่ต้อง OCR
+                    document.getElementById('ocrRaw').textContent = allRows.join('\n');
+                    applyScanResult(allRows.join('\n'), extractAmounts(allRows));
+                } else {
+                    // PDF ที่เป็นภาพสแกน → ใช้ OCR
+                    const big = await renderPage(Math.min(3, 2400 / Math.max(base.width, base.height)));
+                    scanReceiptText(prepareOcrCanvas(big));
+                }
+            } catch (err) {
+                console.error('PDF error:', err);
+                if (runId === ocrRunId) {
+                    const msg = String((err && (err.message || err.name)) || err).replace(/[<>&]/g, '');
+                    setOcrStatus('<span class="text-red-500 font-bold">อ่านไฟล์ PDF ไม่สำเร็จ กรุณากรอกเอง</span><div class="text-[10px] text-gray-400 font-normal mt-1 break-all">สาเหตุ: ' + msg + '</div>');
+                }
+            }
+        }
+
         function handleFileUpload(event) {
             const file = event.target.files[0];
             if (!file) return;
-            
+
             document.getElementById('previewContainer').classList.remove('hidden');
             document.getElementById('imageNameDisplay').innerText = file.name;
-            document.getElementById('ocrStatus').innerHTML = '<span class="text-blue-500">✨ กำลังเตรียมภาพสแกน...</span>';
+            setOcrStatus('<span class="text-blue-500">✨ กำลังเตรียมภาพสแกน...</span>');
+            clearOcrExtras();
             document.getElementById('imageSizeDisplay').innerText = 'เตรียมไฟล์...';
-            
+            if (file.type === 'application/pdf' || /\.pdf$/i.test(file.name)) { handlePdfFile(file); return; }
+
             const reader = new FileReader();
             reader.onload = function(e) {
                 const img = new Image();
                 img.onload = function() {
-                    // 1. สร้างภาพสำหรับอัปโหลดเก็บลง Google Drive (ย่อขนาดพอเหมาะ)
+                    // 1. ภาพสำหรับอัปโหลดเก็บลง Google Drive (ย่อขนาดพอเหมาะ)
                     const canvas = document.createElement('canvas');
                     let w = img.width, h = img.height;
-                    const MAX_SIZE = 1600; 
+                    const MAX_SIZE = 1600;
                     if (w > h && w > MAX_SIZE) { h *= MAX_SIZE / w; w = MAX_SIZE; }
                     else if (h > MAX_SIZE) { w *= MAX_SIZE / h; h = MAX_SIZE; }
-                    
+
                     canvas.width = w; canvas.height = h;
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(img, 0, 0, w, h);
-                    
+
                     base64Image = canvas.toDataURL('image/jpeg', 0.82);
                     document.getElementById('previewImage').src = base64Image;
-                    
+
                     const kb = Math.round(base64Image.length * 0.75 / 1024);
                     document.getElementById('imageSizeDisplay').innerText = `~${kb} KB`;
 
-                    // 2. สร้างภาพ Crop เฉพาะโซนคอลัมน์ตัวเลขด้านขวา (ไม่เอาส่วนหัวที่มีวันที่ 2026-10-20)
-                    const numCanvas = document.createElement('canvas');
-                    const cropX = Math.floor(img.width * 0.68);
-                    const cropY = Math.floor(img.height * 0.42);
-                    const cropW = img.width - cropX;
-                    const cropH = Math.floor(img.height * 0.50);
-                    
-                    // ขยาย 2 เท่าเพื่อให้จุดทศนิยมและลูกน้ำคมชัดที่สุดสำหรับโหมด eng
-                    numCanvas.width = cropW * 2;
-                    numCanvas.height = cropH * 2;
-                    const numCtx = numCanvas.getContext('2d');
-                    numCtx.fillStyle = '#FFFFFF';
-                    numCtx.fillRect(0, 0, numCanvas.width, numCanvas.height);
-                    numCtx.drawImage(img, cropX, cropY, cropW, cropH, 0, 0, numCanvas.width, numCanvas.height);
-                    const croppedNumImage = numCanvas.toDataURL('image/jpeg', 0.95);
-
-                    // ส่งไปสแกนแบบ Dual-Pass
-                    scanReceiptText(base64Image, croppedNumImage);
+                    // 2. ภาพสำหรับ OCR แยกต่างหาก: ใช้ความละเอียดสูงกว่า + ปรับคอนทราสต์
+                    //    (ใบเสร็จยาวๆ ถ้าย่อเหลือ 1600px ตัวหนังสือจะเล็กจนอ่านไม่ออก)
+                    scanReceiptText(prepareOcrCanvas(img));
                 };
                 img.src = e.target.result;
             };
             reader.readAsDataURL(file);
         }
 
+        // ทำภาพขาวดำ + ขยายคอนทราสต์ เพื่อให้ Tesseract อ่านง่ายขึ้น
+        function prepareOcrCanvas(img) {
+            const longSide = Math.max(img.width, img.height);
+            let scale = 1;
+            if (longSide > 2600) scale = 2600 / longSide;
+            else if (longSide < 1600) scale = Math.min(2, 1800 / longSide);
+
+            const w = Math.round(img.width * scale), h = Math.round(img.height * scale);
+            const c = document.createElement('canvas');
+            c.width = w; c.height = h;
+            const ctx = c.getContext('2d', { willReadFrequently: true });
+            ctx.fillStyle = '#fff';
+            ctx.fillRect(0, 0, w, h);
+            ctx.drawImage(img, 0, 0, w, h);
+
+            const imgData = ctx.getImageData(0, 0, w, h);
+            const px = imgData.data;
+            const hist = new Uint32Array(256);
+            for (let i = 0; i < px.length; i += 4) {
+                const g = (px[i] * 0.299 + px[i + 1] * 0.587 + px[i + 2] * 0.114) | 0;
+                px[i] = px[i + 1] = px[i + 2] = g;
+                hist[g]++;
+            }
+            const total = w * h;
+            let lo = 0, hi = 255, acc = 0;
+            for (lo = 0; lo < 255; lo++) { acc += hist[lo]; if (acc > total * 0.01) break; }
+            acc = 0;
+            for (hi = 255; hi > 0; hi--) { acc += hist[hi]; if (acc > total * 0.01) break; }
+            if (hi - lo > 20) {
+                const k = 255 / (hi - lo);
+                for (let i = 0; i < px.length; i += 4) {
+                    let v = (px[i] - lo) * k;
+                    v = v < 0 ? 0 : v > 255 ? 255 : v;
+                    px[i] = px[i + 1] = px[i + 2] = v;
+                }
+            }
+            ctx.putImageData(imgData, 0, 0);
+            return c;
+        }
+
         function removeImage() {
+            ocrRunId++; // ยกเลิกการสแกนที่ค้างอยู่
             document.getElementById('receiptFile').value = '';
             document.getElementById('previewContainer').classList.add('hidden');
+            clearOcrExtras();
             base64Image = '';
         }
 
-        async function scanReceiptText(fullImageSrc, croppedNumImageSrc) {
-            const statusEl = document.getElementById('ocrStatus');
+        // ---------- ส่วนอ่านยอดเงินจากข้อความ OCR ----------
+
+        // คำที่บอกว่าแถวนั้นคือ "ยอดรวมที่ต้องจ่าย" (เรียงจากน่าเชื่อถือสุดไปน้อยสุด)
+        // ใช้ทดสอบกับข้อความที่ตัดช่องว่างออกหมดแล้ว (OCR ภาษาไทยมักเว้นวรรคแปลกๆ)
+        const AMOUNT_TIERS = [
+            [100, /รวม.{0,3}ภาษี|รวมทั้งสิ้น|ทั้งสิ้น|ยอดสุทธิ|สุทธิ|grandtotal|nettotal|netamount|amountdue|totalamount|ยอดชำระ|ชำระสุทธิ/i],
+            [85,  /ยอดรวม|รวมเงิน|รวมสุทธิ|total|ยอดเงิน/i],
+            [70,  /จำนวนเงิน|amount|ยอดเติม/i],
+            [55,  /รวม/]
+        ];
+        // แถวที่ไม่ใช่ยอดรวม (เงินทอน, VAT, ราคาต่อลิตร ฯลฯ)
+        const AMOUNT_EXCLUDE = /เงินทอน|ทอน|change|tendered|รับเงิน|รับมา|เงินสด|cash|credit|เครดิต|ก่อนภาษี|ก่อนvat|มูลค่าสินค้า|ภาษีมูลค่า|vat|subtotal|ส่วนลด|discount|ลิตร|litre|liter|แต้ม|คะแนน|point|ราคา(?!รวม)/i;
+        const AMOUNT_HARD_EXCLUDE = /ทอน|change|tendered|รับเงิน|รับมา|เงินสด|cash|ก่อนภาษี|subtotal/i;
+
+        // แก้ตัวอักษรที่ OCR มักอ่านสลับกับตัวเลข เช่น 2S0.OO -> 250.00
+        function fixOcrDigits(s) {
+            return s.replace(/[\dOoIl|SBZ][\dOoIl|SBZ.,]*[\dOoIl|SBZ]/g, tok => {
+                if (!/\d/.test(tok) || !/[.,]/.test(tok)) return tok;
+                return tok.replace(/[Oo]/g, '0').replace(/[Il|]/g, '1').replace(/S/g, '5').replace(/B/g, '8').replace(/Z/g, '2');
+            });
+        }
+
+        // ดึงตัวเลขเงิน (มีทศนิยม 2 ตำแหน่ง) ออกจากแถว โดยตัดวันที่/เวลาทิ้งก่อน
+        function moneyIn(row) {
+            let t = row
+                .replace(/\d{1,4}\s?[\/\-]\s?\d{1,2}\s?[\/\-]\s?\d{2,4}/g, ' ')
+                .replace(/\d{1,2}\s?:\s?\d{2}(\s?:\s?\d{2})?/g, ' ')
+                .replace(/\d{1,2}\.\d{2}\s*น\.?/g, ' ');
+            t = fixOcrDigits(t);
+            const re = /(\d{1,3}(?:,\d{3})+|\d+)\s?[.,]\s?(\d{2})(?!\d)/g;
+            const out = [];
+            let m;
+            while ((m = re.exec(t))) {
+                const v = parseFloat(m[1].replace(/,/g, '') + '.' + m[2]);
+                if (v >= 1 && v < 100000) out.push(v);
+            }
+            return out;
+        }
+
+        // จัดกลุ่มคำตามตำแหน่งแนวตั้ง ให้ "ชื่อรายการ" กับ "ตัวเลข" ที่อยู่แถวเดียวกันมารวมกัน
+        function buildRows(data) {
+            const rows = [];
+            const words = (data.words || []).filter(w => w.text && w.text.trim() && w.bbox);
+            if (words.length) {
+                const hs = words.map(w => w.bbox.y1 - w.bbox.y0).sort((a, b) => a - b);
+                const medH = hs[Math.floor(hs.length / 2)] || 20;
+                words.sort((a, b) => (a.bbox.y0 + a.bbox.y1) - (b.bbox.y0 + b.bbox.y1));
+                const groups = [];
+                for (const w of words) {
+                    const cy = (w.bbox.y0 + w.bbox.y1) / 2;
+                    const last = groups[groups.length - 1];
+                    if (last && Math.abs(cy - last.cy) <= medH * 0.6) {
+                        last.words.push(w);
+                        last.cy = (last.cy * (last.words.length - 1) + cy) / last.words.length;
+                    } else {
+                        groups.push({ cy, words: [w] });
+                    }
+                }
+                groups.forEach(g => rows.push(g.words.sort((a, b) => a.bbox.x0 - b.bbox.x0).map(w => w.text).join(' ')));
+            }
+            // เพิ่มบรรทัดตามที่ Tesseract แบ่งเอง เป็นตัวช่วยอีกทาง
+            (data.text || '').split(/\r?\n/).map(s => s.trim()).filter(Boolean).forEach(s => rows.push(s));
+            return rows;
+        }
+
+        function extractAmounts(rows) {
+            const norm = rows.map(r => ({ text: r, compact: r.replace(/\s+/g, ''), nums: moneyIn(r) }));
+
+            // ยอดที่โผล่ซ้ำหลายที่ (ยอดรวม/เงินสด/รวมภาษี) มักเป็นยอดจริง
+            const freq = {};
+            norm.forEach(r => {
+                if (AMOUNT_EXCLUDE.test(r.compact)) return;
+                r.nums.forEach(v => { const k = v.toFixed(2); freq[k] = (freq[k] || 0) + 1; });
+            });
+            const fBonus = v => Math.min(9, ((freq[v.toFixed(2)] || 1) - 1) * 3);
+
+            const found = [];
+            norm.forEach((r, i) => {
+                let tier = 0;
+                for (const [score, re] of AMOUNT_TIERS) { if (re.test(r.compact)) { tier = score; break; } }
+                if (!tier) return;
+                const blocked = tier >= 100 ? AMOUNT_HARD_EXCLUDE.test(r.compact) : AMOUNT_EXCLUDE.test(r.compact);
+                if (blocked) return;
+
+                let nums = r.nums, penalty = 0;
+                // ป้ายกับตัวเลขอาจแยกเป็นคนละแถวเล็กน้อย → ลองดูแถวถัดไป
+                if (!nums.length && norm[i + 1] && !AMOUNT_EXCLUDE.test(norm[i + 1].compact)) {
+                    nums = norm[i + 1].nums; penalty = 15;
+                }
+                if (nums.length) {
+                    const v = nums[nums.length - 1]; // ตัวเลขขวาสุดของแถว = ช่อง "จำนวนเงิน"
+                    found.push({ value: v, score: tier - penalty + (i / norm.length) * 4 + fBonus(v), row: r.text });
+                }
+            });
+
+            // ตัวเลขทั่วไป (ใช้เป็นตัวเลือกสำรอง ถ้าไม่เจอคำว่ารวม/สุทธิ)
+            norm.forEach(r => {
+                if (AMOUNT_EXCLUDE.test(r.compact)) return;
+                r.nums.forEach(v => found.push({ value: v, score: 30 + fBonus(v) + (v / 100000) * 5, row: r.text }));
+            });
+            return found;
+        }
+
+        function rankCandidates(list) {
+            const best = {};
+            list.forEach(c => {
+                const k = c.value.toFixed(2);
+                if (!best[k] || c.score > best[k].score) best[k] = c;
+            });
+            return Object.values(best).sort((a, b) => b.score - a.score);
+        }
+
+        function applyScannedAmount(v) {
+            const currentCat = document.getElementById('category').value;
+            if (currentCat === 'เชื้อเพลิง') {
+                document.getElementById('fuelAmount').value = v.toFixed(2);
+            } else if (currentCat === 'วิ่งงานรถ') {
+                document.getElementById('runFee').value = v.toFixed(2);
+            } else {
+                document.getElementById('amount').value = v.toFixed(2);
+                if (!currentCat) document.getElementById('otherFields').classList.remove('hidden');
+            }
+        }
+
+        const fmtBaht = v => '฿' + v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+        function renderCandidates(selected) {
+            const box = document.getElementById('ocrCandidates');
+            const list = lastOcrCands.slice(0, 5);
+            if (list.length < 2) { box.innerHTML = ''; return; }
+            box.innerHTML =
+                '<div class="text-[11px] text-gray-500 mb-1.5">ตัวเลขอื่นที่อ่านเจอ (แตะเพื่อเลือกแทน)</div>' +
+                '<div class="flex flex-wrap gap-1.5 justify-center">' +
+                list.map(c => {
+                    const on = c.value === selected;
+                    return `<button type="button" onclick="pickScannedAmount(${c.value})" class="px-3 py-1 rounded-full text-[12px] font-bold border ${on ? 'bg-[#2b3a4a] text-white border-[#2b3a4a]' : 'bg-white text-[#2b3a4a] border-gray-200'}">${fmtBaht(c.value)}</button>`;
+                }).join('') + '</div>';
+        }
+
+        function pickScannedAmount(v) {
+            applyScannedAmount(v);
+            setOcrStatus(`<span class="text-green-600 font-bold">✅ เลือกยอด ${fmtBaht(v)}</span>`);
+            renderCandidates(v);
+        }
+
+        function applyScanResult(fullText, allCands) {
+            document.getElementById('ocrRaw').textContent = fullText.trim() || '(ไม่พบข้อความ)';
+
+            // 1. ตรวจสอบว่าเป็นบิลเชื้อเพลิงหรือไม่
+            const isFuelBill = /(PT\s*MAX|Petroleum|Olympus|โอลิมปัส|ปิโตรเลียม|Maxcard|LPG|E20|แก๊สโซฮอล์|โซฮอล์|NGV|เชื้อเพลิง)/i.test(fullText);
+            if (isFuelBill) {
+                document.getElementById('category').value = 'เชื้อเพลิง';
+                toggleFields();
+
+                // เช็ค E20 ก่อน เพราะ "แก๊สโซฮอล์ E20" มีคำว่าโซฮอล์ด้วย
+                const fuelSel = document.getElementById('fuelType');
+                if (/LPG/i.test(fullText)) fuelSel.value = 'LPG';
+                else if (/E\s?20/i.test(fullText)) fuelSel.value = 'E20';
+                else if (/NGV/i.test(fullText)) fuelSel.value = 'NGV';
+                else if (/โซฮอล์[^\n]{0,8}95|95[^\n]{0,8}โซฮอล์|(?:^|[^\d.,])95(?![\d.,]\d)|โซฮอล์/i.test(fullText)) fuelSel.value = 'แก๊สโซฮอล์ 95';
+            }
+
+            // 2. ดึงทะเบียนรถจาก "หมายเหตุ 2 :"
+            const remarkMatch = fullText.match(/หมายเหตุ\s*2\s*[:;\.]?\s*([^\n\r]+)/i);
+            if (remarkMatch && remarkMatch[1]) {
+                let licensePlate = remarkMatch[1].trim();
+                licensePlate = licensePlate.replace(/^ยย\s+/, 'ฮย '); // แก้ OCR อ่าน ฮย เป็น ยย
+                const detailsInput = document.getElementById('details');
+                if (!detailsInput.value.includes(licensePlate)) {
+                    detailsInput.value = detailsInput.value ? detailsInput.value + ' ' + licensePlate : licensePlate;
+                }
+            }
+
+            // 3. สรุปยอดเงิน
+            lastOcrCands = rankCandidates(allCands);
+            if (lastOcrCands.length === 0) {
+                setOcrStatus('<span class="text-red-500 font-bold">ไม่พบยอดเงินชัดเจน กรุณากรอกเอง</span>');
+                return;
+            }
+            const best = lastOcrCands[0];
+            applyScannedAmount(best.value);
+            if (best.score >= 80) {
+                setOcrStatus(`<span class="text-green-600 font-bold">✅ ดึงยอดสำเร็จ: ${fmtBaht(best.value)}</span>`);
+            } else {
+                setOcrStatus(`<span class="text-amber-600 font-bold">⚠️ อ่านได้ ${fmtBaht(best.value)} (ไม่แน่ใจ) กรุณาตรวจสอบก่อนบันทึก</span>`);
+            }
+            renderCandidates(best.value);
+
+        }
+
+        async function scanReceiptText(ocrCanvas) {
+            const runId = ++ocrRunId;
+            let worker = null;
             try {
-                // รอบที่ 1: สแกนเฉพาะคอลัมน์ตัวเลขฝั่งขวาด้วยภาษาอังกฤษล้วน (eng) เพื่อความแม่นยำ 100%
-                statusEl.innerHTML = `<span class="text-blue-500">✨ กำลังดึงยอดเงินสุทธิ...</span>`;
-                const numResult = await Tesseract.recognize(croppedNumImageSrc, 'eng');
-                const numText = numResult.data.text;
-
-                // รอบที่ 2: สแกนภาพเต็มด้วยไทย+อังกฤษ เพื่อหาประเภทน้ำมันและป้ายทะเบียนรถ
-                const fullResult = await Tesseract.recognize(fullImageSrc, 'tha+eng', {
-                    logger: m => {
-                        if (m.status === 'recognizing text') {
-                            statusEl.innerHTML = `<span class="text-blue-500">✨ กำลังอ่านรายละเอียดบิล... ${Math.round(m.progress * 100)}%</span>`;
-                        }
+                const logger = m => {
+                    if (runId !== ocrRunId) return;
+                    const pct = Math.round((m.progress || 0) * 100);
+                    if (m.status === 'recognizing text') {
+                        setOcrStatus(`<span class="text-blue-500">✨ กำลังอ่านใบเสร็จ... ${pct}%</span>`);
+                    } else if (/language/i.test(m.status)) {
+                        setOcrStatus(`<span class="text-blue-500">⏳ กำลังโหลดข้อมูลภาษา ${pct}% (ครั้งแรกเท่านั้น)</span>`);
+                    } else if (/loading|initializ/i.test(m.status)) {
+                        setOcrStatus(`<span class="text-blue-500">⏳ ${m.status}...</span>`);
                     }
-                });
-                
-                const fullText = fullResult.data.text;
-                
-                // 1. ตรวจสอบว่าเป็นบิลเชื้อเพลิงหรือไม่ (เช็คจากคำสำคัญในบิล PT / Olympus / Petroleum)
-                const isFuelBill = /(PT\s*MAX|Petroleum|Olympus|โอลิมปัส|ปิโตรเลียม|Maxcard|LPG|E20|แก๊สโซฮอล์|โซฮอล์|NGV|เชื้อเพลิง)/i.test(fullText);
-                if (isFuelBill) {
-                    document.getElementById('category').value = 'เชื้อเพลิง';
-                    toggleFields();
-                    
-                    // จำแนกชนิดเชื้อเพลิง
-                    if (/LPG/i.test(fullText)) {
-                        document.getElementById('fuelType').value = 'LPG';
-                    } else if (/(95|โซฮอล์|แก๊สโซฮอล์)/i.test(fullText)) {
-                        document.getElementById('fuelType').value = 'แก๊สโซฮอล์ 95';
-                    } else if (/E20/i.test(fullText)) {
-                        document.getElementById('fuelType').value = 'E20';
-                    } else if (/NGV/i.test(fullText)) {
-                        document.getElementById('fuelType').value = 'NGV';
-                    }
+                };
+                const startWorker = async (opts) => {
+                    const w = Tesseract.createWorker(Object.assign({ logger }, opts));
+                    await w.load();
+                    await w.loadLanguage('tha+eng');
+                    await w.initialize('tha+eng');
+                    return w;
+                };
+                try {
+                    // ไฟล์ภาษารุ่น fast เล็กกว่ารุ่นเดิมมาก โหลดเร็วกว่าหลายเท่า
+                    worker = await startWorker({
+                        langPath: 'https://raw.githubusercontent.com/tesseract-ocr/tessdata_fast/main',
+                        gzip: false
+                    });
+                } catch (e1) {
+                    console.warn('fast lang failed, fallback', e1);
+                    if (worker) { try { await worker.terminate(); } catch (e) {} worker = null; }
+                    worker = await startWorker({});
                 }
 
-                // 2. ดึงทะเบียนรถจาก "หมายเหตุ 2 :"
-                const remarkMatch = fullText.match(/หมายเหตุ\s*2\s*[:;\.]?\s*([^\n\r]+)/i);
-                if (remarkMatch && remarkMatch[1]) {
-                    let licensePlate = remarkMatch[1].trim();
-                    // แก้ปัญหา OCR อ่าน ฮย เป็น ยย
-                    licensePlate = licensePlate.replace(/^ยย\s+/, 'ฮย ');
-                    const detailsInput = document.getElementById('details');
-                    if (!detailsInput.value.includes(licensePlate)) {
-                        detailsInput.value = detailsInput.value ? detailsInput.value + ' ' + licensePlate : licensePlate;
-                    }
+                // รอบ 1: โหมดคอลัมน์เดียว (เหมาะกับใบเสร็จ) / ถ้ายังไม่มั่นใจ รอบ 2: โหมดบล็อกเดียว
+                const psmList = ['4', '6'];
+                const texts = [];
+                const allCands = [];
+                for (const psm of psmList) {
+                    await worker.setParameters({
+                        tessedit_pageseg_mode: psm,
+                        preserve_interword_spaces: '1',
+                        user_defined_dpi: '300'
+                    });
+                    const { data } = await worker.recognize(ocrCanvas);
+                    if (runId !== ocrRunId) return;
+                    texts.push(data.text || '');
+                    const rows = buildRows(data);
+                    allCands.push(...extractAmounts(rows));
+                    const ranked = rankCandidates(allCands);
+                    if (ranked[0] && ranked[0].score >= 80) break;
                 }
 
-                // 3. สกัดตัวเลขยอดเงิน (กรองวันที่ เช่น 2026-10-20 ออกก่อนเพื่อป้องกันความผิดพลาด)
-                const cleanFullText = fullText.replace(/\d{4}\s*[-/\.]\s*\d{2}\s*[-/\.]\s*\d{2}/g, '');
-                let finalAmount = 0;
-
-                // ค้นหาตัวเลขทศนิยม 2 ตำแหน่งจากภาพ Crop ฝั่งขวา (แม่นยำที่สุดสำหรับช่องจำนวนเงินและมูลค่ารวมภาษี)
-                const cropMatches = numText.replace(/,/g, '').match(/\b\d{2,6}\.\d{2}\b/g);
-                if (cropMatches && cropMatches.length > 0) {
-                    const validNums = cropMatches
-                        .map(n => parseFloat(n))
-                        .filter(n => n > 0 && n < 100000);
-                    if (validNums.length > 0) {
-                        finalAmount = Math.max(...validNums);
-                    }
-                }
-
-                // หากจากภาพ Crop ยังไม่พบ ให้ค้นหาจากคำว่า "รวมภาษี" ในภาพเต็ม
-                if (finalAmount === 0) {
-                    const taxMatch = cleanFullText.match(/รวมภาษี[^\d\n]*([\d,]+\.\d{2})/);
-                    if (taxMatch) {
-                        finalAmount = parseFloat(taxMatch[1].replace(/,/g, ''));
-                    } else {
-                        const allMatches = cleanFullText.replace(/,/g, '').match(/\b\d{2,6}\.\d{2}\b/g);
-                        if (allMatches && allMatches.length > 0) {
-                            const nums = allMatches.map(n => parseFloat(n)).filter(n => n > 15 && n < 100000);
-                            if (nums.length > 0) finalAmount = Math.max(...nums);
-                        }
-                    }
-                }
-                
-                // 4. นำยอดเงินไปใส่ในช่องตามประเภท
-                if (finalAmount > 0) {
-                    const currentCat = document.getElementById('category').value;
-                    if (currentCat === 'เชื้อเพลิง') {
-                        document.getElementById('fuelAmount').value = finalAmount.toFixed(2);
-                    } else if (currentCat === 'วิ่งงานรถ') {
-                        document.getElementById('runFee').value = finalAmount.toFixed(2);
-                    } else {
-                        document.getElementById('amount').value = finalAmount.toFixed(2);
-                        if (!currentCat) {
-                            document.getElementById('otherFields').classList.remove('hidden');
-                        }
-                    }
-                    statusEl.innerHTML = `<span class="text-green-600 font-bold">✅ ดึงยอดสำเร็จ: ฿${finalAmount.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>`;
-                } else {
-                    statusEl.innerHTML = '<span class="text-red-500 font-bold">ไม่พบยอดเงินชัดเจน กรุณากรอกเอง</span>';
-                }
+                applyScanResult(texts.join('\n'), allCands);
             } catch (err) {
-                statusEl.innerHTML = '<span class="text-red-500 font-bold">สแกนล้มเหลว กรุณากรอกเอง</span>';
+                console.error('OCR error:', err);
+                if (runId === ocrRunId) setOcrStatus('<span class="text-red-500 font-bold">สแกนล้มเหลว กรุณากรอกเอง</span>');
+            } finally {
+                if (worker) { try { await worker.terminate(); } catch (e) {} }
             }
         }
 
