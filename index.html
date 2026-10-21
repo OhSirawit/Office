@@ -42,6 +42,7 @@
 
     <div id="toast">ข้อความแจ้งเตือน</div>
 
+    <!-- Header -->
     <div class="max-w-md mx-auto bg-white rounded-b-3xl shadow-sm border-b border-gray-100 overflow-hidden relative z-40">
         <div class="p-4 flex items-center gap-3 bg-white">
             <div class="w-12 h-12 bg-[#c05640] rounded-2xl flex items-center justify-center text-white shadow-sm shrink-0">
@@ -60,17 +61,11 @@
 
         <!-- Action Buttons -->
         <div class="flex gap-2 px-4 pb-4 overflow-x-auto no-scrollbar">
-            <button id="installBtn" class="hidden shrink-0 bg-[#c05640] text-white text-[13px] font-medium px-4 py-2 rounded-xl flex items-center gap-1.5 shadow-sm">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg> ติดตั้งแอป
-            </button>
             <a href="https://docs.google.com/spreadsheets/d/1ShKjTR3FVVYUyu5EKimiOGO77vr38KO_vaYHQ_3Ro2k/edit" target="_blank" class="shrink-0 bg-[#f3f4f6] text-gray-600 px-3 py-2 rounded-xl flex items-center justify-center">
                 <svg class="w-4 h-4 text-[#6d9b73]" fill="currentColor" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 14H7v-2h10v2zm0-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
             </a>
             <button onclick="fetchHistory()" class="shrink-0 bg-[#f3f4f6] text-[#c05640] text-[13px] font-medium px-4 py-2 rounded-xl flex items-center gap-1.5">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" id="syncIcon"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg> ซิงค์ข้อมูล
-            </button>
-            <button class="shrink-0 bg-[#6d9b73] text-white text-[13px] font-medium px-4 py-2 rounded-xl flex items-center gap-1.5 shadow-sm">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg> CSV
             </button>
         </div>
     </div>
@@ -311,13 +306,13 @@
             
             document.getElementById('previewContainer').classList.remove('hidden');
             document.getElementById('imageNameDisplay').innerText = file.name;
-            document.getElementById('ocrStatus').innerHTML = '<span class="text-blue-500">✨ กำลังประมวลผล...</span>';
+            document.getElementById('ocrStatus').innerHTML = '<span class="text-blue-500">✨ กำลังเตรียมระบบ...</span>';
             
             const reader = new FileReader();
             reader.onload = function(e) {
                 const img = new Image();
                 img.onload = function() {
-                    // ลดขนาดภาพเพื่อลดปัญหาแรมมือถือเต็ม
+                    // ย่อภาพก่อนสแกนเพื่อป้องกันมือถือแรมเต็ม
                     const canvas = document.createElement('canvas');
                     let w = img.width, h = img.height;
                     const MAX_SIZE = 1200; 
@@ -345,6 +340,7 @@
             base64Image = '';
         }
 
+        // ฟังก์ชันอ่านใบเสร็จ 
         async function scanReceiptText(imageSrc) {
             const statusEl = document.getElementById('ocrStatus');
             try {
@@ -358,7 +354,7 @@
                 
                 const text = result.data.text;
                 
-                // ค้นหาชนิดเชื้อเพลิง
+                // 1. หาชนิดเชื้อเพลิง
                 const ptMatch = text.match(/PT\s*MAX\s*(LPG|E20|แก๊สโซฮอล์ 95|NGV)/i);
                 if(ptMatch) {
                     document.getElementById('category').value = 'เชื้อเพลิง';
@@ -366,15 +362,23 @@
                     document.getElementById('fuelType').value = ptMatch[1].toUpperCase();
                 }
 
-                // ดึงตัวเลขที่มีทศนิยม 2 ตำแหน่ง "ทั้งหมด" ในบิล (ใช้ /g เพื่อหาทั้งหมด)
+                // 2. หารายละเอียดเพิ่มเติม (เช่น ทะเบียนรถจาก "หมายเหตุ 2 :")
+                const remarkMatch = text.match(/หมายเหตุ\s*2\s*[:;]\s*(.+)/);
+                if (remarkMatch && remarkMatch[1]) {
+                    const licensePlate = remarkMatch[1].trim();
+                    const detailsInput = document.getElementById('details');
+                    // ถ้ายังไม่มีข้อความนี้ในช่อง ให้เติมเข้าไป
+                    if (!detailsInput.value.includes(licensePlate)) {
+                        detailsInput.value = detailsInput.value ? detailsInput.value + ' ' + licensePlate : licensePlate;
+                    }
+                }
+
+                // 3. หายอดเงิน โดยดึงตัวเลขทั้งหมดที่มีทศนิยม 2 ตำแหน่ง แล้วเลือก "ค่ามากที่สุด"
                 const numMatch = text.match(/(\d{1,3}(?:,\d{3})*\.\d{2})/g);
                 
                 if(numMatch && numMatch.length > 0) {
-                    // แปลงชุดตัวเลขที่หาเจอเป็นตัวเลขทางคณิตศาสตร์
                     const numbers = numMatch.map(n => parseFloat(n.replace(/,/g, '')));
-                    
-                    // เลือก "ค่าที่มากที่สุด" ซึ่งมักจะเป็นยอดรวมสุทธิ (ข้ามพวกจำนวนลิตร หรือราคาต่อหน่วย)
-                    const maxVal = Math.max(...numbers);
+                    const maxVal = Math.max(...numbers); // ค้นหาค่ามากที่สุด (มักจะเป็นยอดรวม)
                     
                     if(document.getElementById('category').value === 'เชื้อเพลิง') {
                         document.getElementById('fuelAmount').value = maxVal;
@@ -465,7 +469,7 @@
                     tCash += Number(r.cashIn || 0);
 
                     const dateDisplay = formatDateTimeThai(r.timestamp);
-                    const badgeColor = 'bg-[#2b3a4a]'; // สีป้ายหมวดหมู่แบบมินิมอล
+                    const badgeColor = 'bg-[#2b3a4a]'; 
 
                     // จัดการรูปแบบที่อยู่
                     const locationDisplay = r.locationName && r.locationName !== 'พิกัด GPS' && r.locationName !== '-' 
@@ -629,7 +633,6 @@
                 }
                 return '';
             } catch (error) {
-                console.error('Error fetching location:', error);
                 return '';
             }
         }
@@ -677,14 +680,14 @@
                         tips = Number(document.getElementById('tipFee').value||0);
                     }
 
-                    net = run + toll + park; // แยกยอดทิปออก ไม่นำมารวมในรายจ่ายสุทธิ
+                    net = run + toll + park; // ยอดรายจ่าย ไม่นำทิปมารวม
                     cashIn = cashCol;
                 } else if (cat === 'เชื้อเพลิง') {
                     fuelType = document.getElementById('fuelType').value;
                     fuelAmt = Number(document.getElementById('fuelAmount').value||0);
                     net = fuelAmt;
                 } else if (['เบิกเงิน', 'คืนเงิน'].includes(cat)) {
-                    // เบิกเงิน / คืนเงิน ให้นับเป็นรายรับหรือเก็บเงินสด
+                    // เบิกเงิน / คืนเงิน ให้นับเป็นรายรับ
                     otherAmt = Number(document.getElementById('amount').value||0);
                     cashIn = otherAmt;
                     net = 0;
@@ -709,7 +712,7 @@
                         date: finalDate,
                         category: cat,
                         details: document.getElementById('details').value,
-                        locationName: locName, // ส่งชื่อสถานที่ไปด้วย
+                        locationName: locName,
                         lat: lat, lng: lng,
                         runFee: run, cashCollected: cashCol, tollFee: toll, parkingFee: park, tips: tips,
                         fuelType, fuelAmount: fuelAmt,
@@ -732,23 +735,6 @@
             } finally {
                 btn.innerHTML = originalHTML;
                 btn.disabled = false;
-            }
-        });
-
-        // Initialize PWA Install Prompt
-        let deferredPrompt;
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            deferredPrompt = e;
-            document.getElementById('installBtn').classList.remove('hidden');
-        });
-        document.getElementById('installBtn').addEventListener('click', () => {
-            if (deferredPrompt) {
-                deferredPrompt.prompt();
-                deferredPrompt.userChoice.then(() => { 
-                    deferredPrompt = null; 
-                    document.getElementById('installBtn').classList.add('hidden'); 
-                });
             }
         });
 
