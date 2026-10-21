@@ -728,6 +728,122 @@
             }
         });
 
+        // ฟังก์ชันแปลงพิกัด (Lat/Lng) ให้เป็นชื่อสถานที่ภาษาไทย
+        async function getLocationName(lat, lng) {
+            try {
+                const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=th`);
+                const data = await response.json();
+                if (data && data.address) {
+                    const addr = data.address;
+                    const sub = addr.suburb || addr.town || addr.village || addr.quarter || '';
+                    const dist = addr.city_district || addr.county || addr.district || '';
+                    const prov = addr.city || addr.state || addr.province || '';
+                    
+                    let parts = [];
+                    if(sub) parts.push(sub);
+                    if(dist) parts.push(dist);
+                    if(prov) parts.push(prov);
+                    
+                    return parts.join(', ') || data.display_name.split(',').slice(0, 3).join(',');
+                }
+                return '';
+            } catch (error) {
+                console.error('Error fetching location:', error);
+                return '';
+            }
+        }
+
+        document.getElementById('expenseForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('submitBtn');
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = 'กำลังค้นหาพิกัด... 📍';
+            btn.disabled = true;
+
+            try {
+                let lat = '', lng = '', locName = '';
+                if(document.getElementById('saveGps').checked && navigator.geolocation) {
+                    const pos = await new Promise((resolve) => {
+                        navigator.geolocation.getCurrentPosition(resolve, () => resolve(null), { enableHighAccuracy: true, timeout: 5000 });
+                    });
+                    if(pos) { 
+                        lat = pos.coords.latitude.toFixed(6); 
+                        lng = pos.coords.longitude.toFixed(6); 
+                        // ดึงชื่อสถานที่จากพิกัด
+                        locName = await getLocationName(lat, lng);
+                    }
+                }
+
+                btn.innerHTML = 'กำลังบันทึก... ⏳';
+
+                const cat = document.getElementById('category').value;
+                let run=0, cashCol=0, toll=0, park=0, fuelAmt=0, otherAmt=0, net=0, cashIn=0, tips=0;
+                let fuelType = '';
+
+                if (cat === 'วิ่งงานรถ') {
+                    run = Number(document.getElementById('runFee').value||0);
+                    cashCol = Number(document.getElementById('cashCollected').value||0);
+                    toll = Number(document.getElementById('tollFee').value||0);
+                    park = Number(document.getElementById('parkingFee').value||0);
+                    
+                    if (document.querySelector('input[name="tipOption"]:checked').value === 'yes') {
+                        tips = Number(document.getElementById('tipAmount').value||0);
+                    }
+
+                    net = run + toll + park; // ไม่รวมทิปใน netExpense ให้ตรงตามโครงสร้างเดิม
+                    cashIn = cashCol;
+                } else if (cat === 'เชื้อเพลิง') {
+                    fuelType = document.getElementById('fuelType').value;
+                    fuelAmt = Number(document.getElementById('fuelAmount').value||0);
+                    net = fuelAmt;
+                } else if (cat === 'เบิกเงิน') {
+                    otherAmt = Number(document.getElementById('amount').value||0);
+                    cashIn = otherAmt;
+                } else {
+                    otherAmt = Number(document.getElementById('amount').value||0);
+                    net = otherAmt;
+                }
+
+                const editId = document.getElementById('editId').value;
+                let finalDate = document.getElementById('dateInput').value;
+                if(finalDate) {
+                    const dp = finalDate.split('-');
+                    finalDate = `${dp[2]}/${dp[1]}/${dp[0]}`; 
+                }
+
+                const payload = {
+                    action: editId ? 'editExpense' : 'addExpense',
+                    data: {
+                        id: editId || '',
+                        date: finalDate,
+                        category: cat,
+                        details: document.getElementById('details').value,
+                        locationName: locName, // ส่งชื่อสถานที่ไปด้วย
+                        lat: lat, lng: lng,
+                        runFee: run, cashCollected: cashCol, tollFee: toll, parkingFee: park, tips: tips,
+                        fuelType, fuelAmount: fuelAmt,
+                        amount: otherAmt, netExpense: net, cashIn,
+                        imageBase64: base64Image
+                    }
+                };
+
+                const res = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) });
+                const json = await res.json();
+                
+                if(json.status === 'success') {
+                    showToast(editId ? 'อัปเดตข้อมูลสำเร็จ' : 'บันทึกข้อมูลเรียบร้อยแล้ว!');
+                    cancelEdit(); 
+                    fetchHistory(); 
+                    switchTab('history');
+                } else throw new Error();
+            } catch (err) {
+                showToast('การส่งข้อมูลขัดข้อง กรุณาลองใหม่', true);
+            } finally {
+                btn.innerHTML = originalHTML;
+                btn.disabled = false;
+            }
+        });
+
         window.onload = () => { 
             toggleFields(); 
             toggleTip();
