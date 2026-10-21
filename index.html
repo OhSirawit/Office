@@ -362,31 +362,40 @@
                     document.getElementById('fuelType').value = ptMatch[1].toUpperCase();
                 }
 
-                // 2. หารายละเอียดเพิ่มเติม (เช่น ทะเบียนรถจาก "หมายเหตุ 2 :")
+                // 2. หารายละเอียดเพิ่มเติม (ทะเบียนรถจาก "หมายเหตุ 2 :")
                 const remarkMatch = text.match(/หมายเหตุ\s*2\s*[:;]\s*(.+)/);
                 if (remarkMatch && remarkMatch[1]) {
                     const licensePlate = remarkMatch[1].trim();
                     const detailsInput = document.getElementById('details');
-                    // ถ้ายังไม่มีข้อความนี้ในช่อง ให้เติมเข้าไป
                     if (!detailsInput.value.includes(licensePlate)) {
                         detailsInput.value = detailsInput.value ? detailsInput.value + ' ' + licensePlate : licensePlate;
                     }
                 }
 
-                // 3. หายอดเงิน โดยดึงตัวเลขทั้งหมดที่มีทศนิยม 2 ตำแหน่ง แล้วเลือก "ค่ามากที่สุด"
-                const numMatch = text.match(/(\d{1,3}(?:,\d{3})*\.\d{2})/g);
+                // 3. หายอดเงิน โดยเจาะจงจากช่อง "มูลค่ารวมภาษี" เป็นหลัก
+                let finalAmount = 0;
                 
-                if(numMatch && numMatch.length > 0) {
-                    const numbers = numMatch.map(n => parseFloat(n.replace(/,/g, '')));
-                    const maxVal = Math.max(...numbers); // ค้นหาค่ามากที่สุด (มักจะเป็นยอดรวม)
-                    
-                    if(document.getElementById('category').value === 'เชื้อเพลิง') {
-                        document.getElementById('fuelAmount').value = maxVal;
-                    } else {
-                        document.getElementById('amount').value = maxVal;
+                // ค้นหาคำว่า "รวมภาษี" และดึงตัวเลขที่อยู่ถัดไปทันที (รองรับช่องว่างหรืออักขระคั่น)
+                const taxMatch = text.match(/รวมภาษี[^\d]*([\d,]+\.\d{2})/);
+                
+                if (taxMatch) {
+                    finalAmount = parseFloat(taxMatch[1].replace(/,/g, ''));
+                } else {
+                    // ระบบสำรอง: ถ้า OCR อ่านคำว่ารวมภาษีไม่ออก ให้ดึงตัวเลขที่มีค่ามากที่สุดในบิลแทน
+                    const numMatch = text.match(/(\d{1,3}(?:,\d{3})*\.\d{2})/g);
+                    if(numMatch && numMatch.length > 0) {
+                        const numbers = numMatch.map(n => parseFloat(n.replace(/,/g, '')));
+                        finalAmount = Math.max(...numbers);
                     }
-                    
-                    statusEl.innerHTML = `<span class="text-green-600 font-bold">ดึงยอดสำเร็จ: ฿${maxVal.toFixed(2)}</span>`;
+                }
+                
+                if(finalAmount > 0) {
+                    if(document.getElementById('category').value === 'เชื้อเพลิง') {
+                        document.getElementById('fuelAmount').value = finalAmount;
+                    } else {
+                        document.getElementById('amount').value = finalAmount;
+                    }
+                    statusEl.innerHTML = `<span class="text-green-600 font-bold">ดึงยอดสำเร็จ: ฿${finalAmount.toFixed(2)}</span>`;
                 } else {
                     statusEl.innerHTML = '<span class="text-red-500 font-bold">ไม่พบยอดเงิน กรุณากรอกเอง</span>';
                 }
