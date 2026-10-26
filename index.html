@@ -277,8 +277,8 @@
     </nav>
 
     <script>
-        // --- เปลี่ยนเป็น SCRIPT URL เวอร์ชันล่าสุดแล้ว ---
-        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxd4HUCBUpDvIjj_kwqz-CXrcTyD28G4Zn6zpCP-B-wpBRApEYM7fi6xOb_vhBAmbKi/exec';
+        // --- เปลี่ยนเป็น SCRIPT URL เวอร์ชัน 13 ตามภาพล่าสุด ---
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxzjxqdHZxUgBLZhKi0HbPHE-hlSh7dlkKuYnExU9yUJiEIN-PQTBuTzPj-GrjsviU/exec';
         
         let base64Image = '';
         let globalHistory = [];
@@ -633,7 +633,7 @@
             // ตัวเลขทั่วไป (ใช้เป็นตัวเลือกสำรอง ถ้าไม่เจอคำว่ารวม/สุทธิ)
             norm.forEach(r => {
                 if (AMOUNT_EXCLUDE.test(r.compact)) return;
-                r.nums.forEach(v => found.push({ value: v, score: 30 + fBonus(v) + (v / 100000) * 5, row: r.text });
+                r.nums.forEach(v => found.push({ value: v, score: 30 + fBonus(v) + (v / 100000) * 5, row: r.text }));
             });
             return found;
         }
