@@ -633,7 +633,7 @@
             // ตัวเลขทั่วไป (ใช้เป็นตัวเลือกสำรอง ถ้าไม่เจอคำว่ารวม/สุทธิ)
             norm.forEach(r => {
                 if (AMOUNT_EXCLUDE.test(r.compact)) return;
-                r.nums.forEach(v => found.push({ value: v, score: 30 + fBonus(v) + (v / 100000) * 5, row: r.text }));
+                r.nums.forEach(v => found.push({ value: v, score: 30 + fBonus(v) + (v / 100000) * 5, row: r.text });
             });
             return found;
         }
