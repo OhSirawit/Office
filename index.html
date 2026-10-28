@@ -7,6 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.1.4/dist/tesseract.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body { 
             font-family: 'Prompt', sans-serif; 
@@ -66,7 +67,6 @@
             <div class="flex-1">
                 <div class="flex items-center gap-2 flex-wrap">
                     <h1 class="text-[17px] font-bold text-gray-900 leading-tight">บันทึกค่าใช้จ่ายออฟฟิศ</h1>
-                    <span class="text-[10px] text-[#c05640] border border-[#c05640] bg-[#fff6f4] px-1.5 py-0.5 rounded font-medium whitespace-nowrap">ฝ่ายบัญชี • WepApp</span>
                 </div>
                 <p class="text-[11px] text-gray-500 mt-1 flex items-center gap-1.5">
                     <span class="w-2 h-2 rounded-full bg-[#6d9b73] animate-pulse"></span> ซิงค์กับฐานข้อมูล WepApp ล่าสุดแล้ว
@@ -264,6 +264,52 @@
         </div>
     </div>
 
+    <!-- TAB 3: DASHBOARD -->
+    <div id="tab-dashboard" class="tab-content max-w-md mx-auto pt-4 px-4 pb-8">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="font-bold text-[17px] text-gray-800">สรุปสถิติแบบละเอียด</h2>
+            <select id="dashMonthFilter" class="bg-white border border-gray-200 text-[11px] rounded-lg px-2 py-1 outline-none font-medium shadow-sm" onchange="renderDashboard()">
+                <option value="all">ทุกเดือน</option>
+            </select>
+        </div>
+
+        <!-- Chart Card -->
+        <div class="bg-white p-4 rounded-[24px] mb-4 shadow-sm border border-gray-100">
+            <h3 class="text-[13px] font-bold text-gray-700 mb-4 text-center">สัดส่วนค่าใช้จ่ายตามประเภท</h3>
+            <div class="relative w-full h-48">
+                <canvas id="expenseChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Stats Grid -->
+        <div class="grid grid-cols-2 gap-3 mb-4">
+            <div class="bg-[#fff8f5] border border-orange-100 p-3 rounded-2xl">
+                <div class="text-[11px] text-[#c05640] font-bold mb-1">ค่าน้ำมัน/แก๊สรวม</div>
+                <div class="text-[18px] font-bold text-gray-800" id="dashTotalFuel">฿0.00</div>
+            </div>
+            <div class="bg-[#f0f4f1] border border-green-100 p-3 rounded-2xl">
+                <div class="text-[11px] text-[#6d9b73] font-bold mb-1">ทิปพิเศษรวม</div>
+                <div class="text-[18px] font-bold text-gray-800" id="dashTotalTips">฿0.00</div>
+            </div>
+            <div class="bg-blue-50 border border-blue-100 p-3 rounded-2xl">
+                <div class="text-[11px] text-blue-600 font-bold mb-1">ค่าทางด่วนรวม</div>
+                <div class="text-[18px] font-bold text-gray-800" id="dashTotalToll">฿0.00</div>
+            </div>
+            <div class="bg-gray-50 border border-gray-200 p-3 rounded-2xl">
+                <div class="text-[11px] text-gray-600 font-bold mb-1">ค่าจอดรถรวม</div>
+                <div class="text-[18px] font-bold text-gray-800" id="dashTotalPark">฿0.00</div>
+            </div>
+        </div>
+
+        <!-- Detail List -->
+        <div class="bg-white p-4 rounded-[24px] shadow-sm border border-gray-100">
+            <h3 class="text-[13px] font-bold text-gray-700 mb-3 border-b border-gray-100 pb-2">ยอดรวมแยกตามประเภท (เฉพาะรายจ่าย)</h3>
+            <div id="dashCategoryList" class="space-y-2.5">
+                <!-- JS will populate this -->
+            </div>
+        </div>
+    </div>
+
     <!-- Bottom Navigation -->
     <nav class="bottom-nav">
         <div class="nav-item active" id="nav-form" onclick="switchTab('form')">
@@ -272,15 +318,20 @@
         </div>
         <div class="nav-item" id="nav-history" onclick="switchTab('history')">
             <svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>
-            ประวัติ & สรุปยอด
+            ประวัติธุรกรรม
+        </div>
+        <div class="nav-item" id="nav-dashboard" onclick="switchTab('dashboard')">
+            <svg viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+            สรุปสถิติ
         </div>
     </nav>
 
     <script>
-        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxpzmyEIW5OhTATrMooL2yrmaC0KfKj8n8fM3ev1N7LshRP24t2qjyuPRBjLYUjRYCC/exec';
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxPqc-oEJt0Vfvlj_O-nYNnlnNVpIthWN2vAdal-kfH2cAqFVP-8PAD9RYUn6oAw9Fd/exec';
         
         let base64Image = '';
         let globalHistory = [];
+        let expenseChartInstance = null; // ตัวแปรเก็บกราฟ
 
         document.getElementById('dateInput').valueAsDate = new Date();
 
@@ -298,6 +349,8 @@
             document.getElementById('nav-' + tabId).classList.add('active');
             window.scrollTo(0, 0);
             if(tabId === 'history' && globalHistory.length === 0) fetchHistory();
+            if(tabId === 'dashboard' && globalHistory.length === 0) fetchHistory();
+            if(tabId === 'dashboard' && globalHistory.length > 0) renderDashboard();
         }
 
         function toggleFields() {
@@ -810,7 +863,14 @@
                     });
                     if(Array.from(monthsSet).includes(curr)) select.value = curr;
 
+                    // อัปเดตตัวกรองเดือนในหน้า Dashboard ให้ตรงกันด้วย
+                    const dashSelect = document.getElementById('dashMonthFilter');
+                    const dashCurr = dashSelect.value;
+                    dashSelect.innerHTML = select.innerHTML;
+                    if(Array.from(monthsSet).includes(dashCurr)) dashSelect.value = dashCurr;
+
                     renderHistory();
+                    if(document.getElementById('tab-dashboard').classList.contains('active')) renderDashboard();
                 }
             } catch (e) {
                 document.getElementById('historyList').innerHTML = '<div class="text-center text-red-500 py-4 font-medium">❌ โหลดข้อมูลไม่สำเร็จ</div>';
@@ -848,6 +908,24 @@
                         ? r.locationName 
                         : (r.mapUrl && r.mapUrl !== '-' ? 'พิกัด GPS' : '');
 
+                    let expenseDetails = '';
+                    if (r.category === 'วิ่งงานรถ') {
+                        expenseDetails = `
+                        <details class="mt-3 bg-[#f8f9fa] rounded-xl border border-gray-100 overflow-hidden group">
+                            <summary class="px-3 py-2.5 text-[11px] font-bold text-gray-600 cursor-pointer list-none flex justify-between items-center hover:bg-gray-50 transition-colors">
+                                รายละเอียดค่าใช้จ่าย
+                                <svg class="w-4 h-4 text-gray-400 transition-transform duration-300 group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                            </summary>
+                            <div class="px-3 pb-3 space-y-1.5 border-t border-gray-100 pt-2">
+                                ${Number(r.runFee) > 0 ? `<div class="flex justify-between text-[11px]"><span class="text-gray-500">ค่าวิ่งงาน</span><span class="font-medium text-gray-700">฿${Number(r.runFee).toLocaleString(undefined,{minimumFractionDigits:2})}</span></div>` : ''}
+                                ${Number(r.tollFee) > 0 ? `<div class="flex justify-between text-[11px]"><span class="text-gray-500">ค่าทางด่วน</span><span class="font-medium text-gray-700">฿${Number(r.tollFee).toLocaleString(undefined,{minimumFractionDigits:2})}</span></div>` : ''}
+                                ${Number(r.parkingFee) > 0 ? `<div class="flex justify-between text-[11px]"><span class="text-gray-500">ค่าจอดรถ</span><span class="font-medium text-gray-700">฿${Number(r.parkingFee).toLocaleString(undefined,{minimumFractionDigits:2})}</span></div>` : ''}
+                                ${Number(r.cashCollected) > 0 ? `<div class="flex justify-between text-[11px]"><span class="text-gray-500">เก็บเงินสดลูกค้า</span><span class="font-bold text-[#6d9b73]">+฿${Number(r.cashCollected).toLocaleString(undefined,{minimumFractionDigits:2})}</span></div>` : ''}
+                                ${Number(r.tips) > 0 ? `<div class="flex justify-between text-[11px] pt-1 mt-1 border-t border-gray-100"><span class="text-[#c05640] font-medium">ทิปพิเศษ</span><span class="font-bold text-[#c05640]">฿${Number(r.tips).toLocaleString(undefined,{minimumFractionDigits:2})}</span></div>` : ''}
+                            </div>
+                        </details>`;
+                    }
+
                     list.innerHTML += `
                         <div class="bg-white p-4 rounded-[20px] shadow-sm border border-gray-100 relative">
                             <div class="flex justify-between items-start mb-2.5">
@@ -862,6 +940,8 @@
                             </div>
                             <div class="text-[13px] font-medium text-gray-800 pr-4 leading-relaxed">${r.details || '-'}</div>
                             
+                            ${expenseDetails}
+                            
                             ${locationDisplay ? `
                             <div class="mt-3 bg-[#f5ede7] px-3 py-2 rounded-xl flex items-start gap-2 border border-[#eae0d8]">
                                 <svg class="w-3.5 h-3.5 text-[#c05640] mt-0.5 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/></svg>
@@ -872,7 +952,7 @@
                                 <button onclick="editRecord('${r.id}')" class="text-[11px] bg-blue-50 border border-blue-100 text-blue-600 hover:bg-blue-100 transition px-3 py-1.5 rounded-lg font-bold flex items-center gap-1.5 shadow-sm">
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg> แก้ไข
                                 </button>
-                                ${r.fileUrl ? `
+                                ${r.fileUrl && r.fileUrl !== '-' ? `
                                 <a href="${r.fileUrl}" target="_blank" class="text-[11px] bg-gray-50 border border-gray-200 text-gray-700 hover:bg-gray-100 transition px-3 py-1.5 rounded-lg font-bold flex items-center gap-1.5 shadow-sm">
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg> ดูใบเสร็จ
                                 </a>` : ''}
@@ -883,6 +963,130 @@
 
             document.getElementById('totalExpenseDisplay').innerText = `฿${tExp.toLocaleString(undefined,{minimumFractionDigits:2})}`;
             document.getElementById('cashInDisplay').innerText = `฿${tCash.toLocaleString(undefined,{minimumFractionDigits:2})}`;
+        }
+
+        function renderDashboard() {
+            const filter = document.getElementById('dashMonthFilter').value;
+            let tFuel = 0, tTips = 0, tToll = 0, tPark = 0;
+            const catTotals = {};
+
+            const filtered = globalHistory.filter(r => {
+                if(filter === 'all') return true;
+                if(r.timestamp) {
+                    const p = r.timestamp.split(' ')[0].split('/');
+                    if(p.length >= 3 && `${p[1]}/${p[2]}` === filter) return true;
+                }
+                return false;
+            });
+
+            filtered.forEach(r => {
+                const net = Number(r.netExpense) || 0;
+                
+                // รวมยอดตามประเภท
+                if (!catTotals[r.category]) catTotals[r.category] = 0;
+                catTotals[r.category] += net;
+
+                // รวมยอดเฉพาะเจาะจง
+                if (r.category === 'วิ่งงานรถ') {
+                    tToll += Number(r.tollFee) || 0;
+                    tPark += Number(r.parkingFee) || 0;
+                    tTips += Number(r.tips) || 0;
+                } else if (r.category === 'เชื้อเพลิง') {
+                    tFuel += Number(r.fuelAmount) || 0;
+                }
+            });
+
+            // อัปเดตตัวเลขในกล่อง 4 สี
+            document.getElementById('dashTotalFuel').innerText = `฿${tFuel.toLocaleString(undefined,{minimumFractionDigits:2})}`;
+            document.getElementById('dashTotalTips').innerText = `฿${tTips.toLocaleString(undefined,{minimumFractionDigits:2})}`;
+            document.getElementById('dashTotalToll').innerText = `฿${tToll.toLocaleString(undefined,{minimumFractionDigits:2})}`;
+            document.getElementById('dashTotalPark').innerText = `฿${tPark.toLocaleString(undefined,{minimumFractionDigits:2})}`;
+
+            // อัปเดตรายการแยกประเภทด้านล่าง
+            const listEl = document.getElementById('dashCategoryList');
+            listEl.innerHTML = '';
+            let hasData = false;
+
+            // ตั้งค่าสีแต่ละหมวดหมู่สำหรับกราฟ
+            const bgColors = {
+                'วิ่งงานรถ': '#2b3a4a',
+                'เชื้อเพลิง': '#c05640',
+                'เบิกเงิน': '#6d9b73',
+                'คืนเงิน': '#eab308',
+                'ล้างรถ': '#0ea5e9',
+                'ฝากซื้อของ': '#8b5cf6',
+                'อื่นๆ': '#64748b'
+            };
+
+            const chartLabels = [];
+            const chartData = [];
+            const chartColors = [];
+
+            // เรียงลำดับจากค่าใช้จ่ายมากไปน้อย
+            Object.keys(catTotals).sort((a,b) => catTotals[b] - catTotals[a]).forEach(cat => {
+                if (catTotals[cat] > 0) {
+                    hasData = true;
+                    chartLabels.push(cat);
+                    chartData.push(catTotals[cat]);
+                    const color = bgColors[cat] || '#94a3b8';
+                    chartColors.push(color);
+
+                    listEl.innerHTML += `
+                        <div class="flex justify-between items-center text-[12px]">
+                            <div class="flex items-center gap-2">
+                                <span class="w-3 h-3 rounded-full shadow-sm" style="background-color: ${color}"></span>
+                                <span class="text-gray-700 font-medium">${cat}</span>
+                            </div>
+                            <span class="font-bold text-gray-900">฿${catTotals[cat].toLocaleString(undefined,{minimumFractionDigits:2})}</span>
+                        </div>
+                    `;
+                }
+            });
+
+            if (!hasData) {
+                listEl.innerHTML = '<div class="text-center text-gray-400 py-4 text-[11px]">ไม่มีข้อมูลรายจ่ายในเดือนนี้</div>';
+            }
+
+            // จัดการสร้างกราฟโดนัท
+            const ctx = document.getElementById('expenseChart').getContext('2d');
+            if (expenseChartInstance) {
+                expenseChartInstance.destroy(); // ลบกราฟเก่าทิ้งก่อนวาดใหม่
+            }
+
+            if (hasData) {
+                expenseChartInstance = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: chartLabels,
+                        datasets: [{
+                            data: chartData,
+                            backgroundColor: chartColors,
+                            borderWidth: 2,
+                            borderColor: '#ffffff'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        cutout: '65%', // ความบางของโดนัท
+                        plugins: {
+                            legend: { display: false }, // ซ่อน Label ข้างๆ เพราะเรามี list แยกให้แล้ว
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        let label = context.label || '';
+                                        if (label) label += ': ';
+                                        if (context.parsed !== null) {
+                                            label += '฿' + context.parsed.toLocaleString(undefined,{minimumFractionDigits:2});
+                                        }
+                                        return label;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
         }
 
         function editRecord(id) {
