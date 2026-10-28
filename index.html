@@ -258,6 +258,15 @@
                 </div>
             </div>
             
+            <!-- เริ่ม: เพิ่มช่องค้นหา (Search Bar) ตรงนี้ -->
+            <div class="mb-4 relative">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                </div>
+                <input type="text" id="searchInput" onkeyup="renderHistory()" placeholder="ค้นหาทะเบียนรถ, ลูกค้า, สถานที่..." class="w-full pl-9 pr-3 py-2 bg-white border border-gray-200 rounded-xl text-[12px] focus:outline-none focus:border-[#c05640] focus:ring-1 focus:ring-[#c05640] shadow-sm transition-all text-gray-700 font-medium">
+            </div>
+            <!-- จบ: ช่องค้นหา -->
+            
             <div id="historyList" class="space-y-4">
                 <div class="text-center text-gray-500 py-8 text-sm font-medium">กำลังโหลดข้อมูล...</div>
             </div>
@@ -830,7 +839,12 @@
             const months = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
             const d = parseInt(dateParts[0], 10);
             const m = months[parseInt(dateParts[1], 10) - 1];
-            const y = dateParts[2].substring(2);
+            
+            // แปลง ค.ศ. ให้เป็น พ.ศ. เพื่อแก้ปัญหาตัวเลขปีซ้ำซ้อน
+            let y = parseInt(dateParts[2], 10);
+            if (y < 2500) y += 543; 
+            y = y.toString().substring(2);
+            
             let timeStr = '';
             if(parts.length > 1) timeStr = ` • ${parts[1].substring(0, 5)} น.`;
             return `${d} ${m} ${y}${timeStr}`;
@@ -852,7 +866,11 @@
                     globalHistory.forEach(r => {
                         if(r.timestamp) {
                             const p = r.timestamp.split(' ')[0].split('/');
-                            if(p.length >= 3) monthsSet.add(`${p[1]}/${p[2]}`); 
+                            if(p.length >= 3) {
+                                let yyyy = parseInt(p[2], 10);
+                                if(yyyy < 2500) yyyy += 543; // แปลงให้เป็น พ.ศ. ก่อนจัดกลุ่ม
+                                monthsSet.add(`${p[1]}/${yyyy}`); 
+                            }
                         }
                     });
                     select.innerHTML = '<option value="all">ทุกเดือน</option>';
@@ -882,20 +900,36 @@
         function renderHistory() {
             const list = document.getElementById('historyList');
             const filter = document.getElementById('monthFilter').value;
+            // ดึงค่าจากช่องค้นหา
+            const searchKeyword = document.getElementById('searchInput') ? document.getElementById('searchInput').value.toLowerCase().trim() : '';
+            
             list.innerHTML = '';
             let tExp = 0, tCash = 0;
 
             const filtered = globalHistory.filter(r => {
-                if(filter === 'all') return true;
-                if(r.timestamp) {
+                let matchMonth = false;
+                if(filter === 'all') matchMonth = true;
+                else if(r.timestamp) {
                     const p = r.timestamp.split(' ')[0].split('/');
-                    if(p.length >= 3 && `${p[1]}/${p[2]}` === filter) return true;
+                    if(p.length >= 3) {
+                        let y = parseInt(p[2]);
+                        if(y < 2500) y += 543;
+                        if(`${p[1]}/${y}` === filter) matchMonth = true;
+                    }
                 }
-                return false;
+                
+                // ตรวจสอบเงื่อนไขคำค้นหา
+                let matchSearch = true;
+                if (searchKeyword) {
+                    const searchText = `${r.category} ${r.details || ''} ${r.locationName || ''} ${r.fuelType || ''}`.toLowerCase();
+                    matchSearch = searchText.includes(searchKeyword);
+                }
+                
+                return matchMonth && matchSearch;
             });
 
             if(filtered.length === 0) {
-                list.innerHTML = '<div class="text-center text-gray-500 py-8 text-sm font-medium">ไม่มีรายการในเดือนนี้</div>';
+                list.innerHTML = '<div class="text-center text-gray-500 py-8 text-sm font-medium">ไม่มีรายการที่คุณค้นหา</div>';
             } else {
                 filtered.forEach(r => {
                     tExp += Number(r.netExpense || 0);
@@ -974,7 +1008,11 @@
                 if(filter === 'all') return true;
                 if(r.timestamp) {
                     const p = r.timestamp.split(' ')[0].split('/');
-                    if(p.length >= 3 && `${p[1]}/${p[2]}` === filter) return true;
+                    if(p.length >= 3) {
+                        let yyyy = parseInt(p[2], 10);
+                        if(yyyy < 2500) yyyy += 543;
+                        if(`${p[1]}/${yyyy}` === filter) return true;
+                    }
                 }
                 return false;
             });
