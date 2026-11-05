@@ -831,22 +831,41 @@
             }
         }
 
+        function parseFlexDate(dStr) {
+            if (!dStr) return null;
+            dStr = String(dStr);
+            if (dStr.includes('T')) {
+                const d = new Date(dStr);
+                if (isNaN(d.getTime())) return null;
+                // แก้บั๊ก: จัดเรียง วัน และ เดือน ให้ถูกต้องตามมาตรฐาน (ไม่สลับกันแล้ว)
+                return { y: String(d.getFullYear()), m: String(d.getMonth() + 1), d: String(d.getDate()) };
+            } else if (dStr.includes('/')) {
+                const p = dStr.split(' ')[0].split('/');
+                if (p.length === 3) return { y: p[2], m: p[1], d: p[0] };
+            } else if (dStr.includes('-')) {
+                const p = dStr.split(' ')[0].split('-');
+                if (p.length === 3) return { y: p[0], m: p[1], d: p[2] };
+            }
+            return null;
+        }
+
         function formatDateTimeThai(ts) {
-            if(!ts) return '';
-            const parts = ts.split(' ');
-            const dateParts = parts[0].split('/'); 
-            if(dateParts.length < 3) return ts;
+            const parsed = parseFlexDate(ts);
+            if (!parsed) return ts || '';
             const months = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
-            const d = parseInt(dateParts[0], 10);
-            const m = months[parseInt(dateParts[1], 10) - 1];
+            const d = parseInt(parsed.d, 10);
+            const m = months[parseInt(parsed.m, 10) - 1];
             
-            // แปลง ค.ศ. ให้เป็น พ.ศ. เพื่อแก้ปัญหาตัวเลขปีซ้ำซ้อน
-            let y = parseInt(dateParts[2], 10);
-            if (y < 2500) y += 543; 
+            let y = parseInt(parsed.y, 10);
+            if (y < 2500 && y > 1000) y += 543; 
+            else if (y < 100) y += 2543;
             y = y.toString().substring(2);
             
             let timeStr = '';
-            if(parts.length > 1) timeStr = ` • ${parts[1].substring(0, 5)} น.`;
+            if(String(ts).includes(' ')) {
+                const parts = String(ts).split(' ');
+                if(parts.length > 1) timeStr = ` • ${parts[1].substring(0, 5)} น.`;
+            }
             return `${d} ${m} ${y}${timeStr}`;
         }
 
@@ -858,19 +877,23 @@
                 const res = await fetch(SCRIPT_URL);
                 const json = await res.json();
                 if(json.status === 'success') {
-                    globalHistory = json.data;
+                    // แก้บั๊ก: ลบเครื่องหมาย ' ที่ติดมาจาก Sheet เพื่อให้อ่านวันที่ได้ถูกต้อง
+                    globalHistory = json.data.map(item => {
+                        if(item.timestamp) item.timestamp = String(item.timestamp).replace(/^'/, '');
+                        if(item.date) item.date = String(item.date).replace(/^'/, '');
+                        return item;
+                    });
                     
                     const select = document.getElementById('monthFilter');
                     const curr = select.value;
                     const monthsSet = new Set();
                     globalHistory.forEach(r => {
-                        if(r.timestamp) {
-                            const p = r.timestamp.split(' ')[0].split('/');
-                            if(p.length >= 3) {
-                                let yyyy = parseInt(p[2], 10);
-                                if(yyyy < 2500) yyyy += 543; // แปลงให้เป็น พ.ศ. ก่อนจัดกลุ่ม
-                                monthsSet.add(`${p[1]}/${yyyy}`); 
-                            }
+                        const parsed = parseFlexDate(r.date) || parseFlexDate(r.timestamp);
+                        if(parsed) {
+                            let yyyy = parseInt(parsed.y, 10);
+                            if(yyyy < 2500 && yyyy > 1000) yyyy += 543;
+                            else if(yyyy < 100) yyyy += 2543;
+                            monthsSet.add(`${parseInt(parsed.m, 10)}/${yyyy}`); 
                         }
                     });
                     select.innerHTML = '<option value="all">ทุกเดือน</option>';
@@ -909,12 +932,13 @@
             const filtered = globalHistory.filter(r => {
                 let matchMonth = false;
                 if(filter === 'all') matchMonth = true;
-                else if(r.timestamp) {
-                    const p = r.timestamp.split(' ')[0].split('/');
-                    if(p.length >= 3) {
-                        let y = parseInt(p[2]);
-                        if(y < 2500) y += 543;
-                        if(`${p[1]}/${y}` === filter) matchMonth = true;
+                else {
+                    const parsed = parseFlexDate(r.date) || parseFlexDate(r.timestamp);
+                    if(parsed) {
+                        let y = parseInt(parsed.y, 10);
+                        if(y < 2500 && y > 1000) y += 543;
+                        else if (y < 100) y += 2543;
+                        if(`${parseInt(parsed.m, 10)}/${y}` === filter) matchMonth = true;
                     }
                 }
                 
@@ -935,7 +959,7 @@
                     tExp += Number(r.netExpense || 0);
                     tCash += Number(r.cashIn || 0);
 
-                    const dateDisplay = formatDateTimeThai(r.timestamp);
+                    const dateDisplay = formatDateTimeThai(r.date || r.timestamp);
                     const badgeColor = 'bg-[#2b3a4a]'; 
 
                     const locationDisplay = r.locationName && r.locationName !== 'พิกัด GPS' && r.locationName !== '-' 
@@ -1006,13 +1030,12 @@
 
             const filtered = globalHistory.filter(r => {
                 if(filter === 'all') return true;
-                if(r.timestamp) {
-                    const p = r.timestamp.split(' ')[0].split('/');
-                    if(p.length >= 3) {
-                        let yyyy = parseInt(p[2], 10);
-                        if(yyyy < 2500) yyyy += 543;
-                        if(`${p[1]}/${yyyy}` === filter) return true;
-                    }
+                const parsed = parseFlexDate(r.date) || parseFlexDate(r.timestamp);
+                if(parsed) {
+                    let yyyy = parseInt(parsed.y, 10);
+                    if(yyyy < 2500 && yyyy > 1000) yyyy += 543;
+                    else if (yyyy < 100) yyyy += 2543;
+                    if(`${parseInt(parsed.m, 10)}/${yyyy}` === filter) return true;
                 }
                 return false;
             });
@@ -1133,9 +1156,15 @@
 
             document.getElementById('editId').value = r.id;
             
-            if(r.timestamp) {
-                const p = r.timestamp.split(' ')[0].split('/');
-                if(p.length === 3) document.getElementById('dateInput').value = `${p[2]}-${p[1]}-${p[0]}`;
+            const parsed = parseFlexDate(r.date) || parseFlexDate(r.timestamp);
+            if (parsed) {
+                let y = parsed.y;
+                if (y.length === 2) y = '20' + y;
+                const m = String(parsed.m).padStart(2, '0');
+                const d = String(parsed.d).padStart(2, '0');
+                document.getElementById('dateInput').value = `${y}-${m}-${d}`;
+            } else {
+                document.getElementById('dateInput').valueAsDate = new Date();
             }
             
             document.getElementById('category').value = r.category;
@@ -1319,10 +1348,7 @@
 
                 const editId = document.getElementById('editId').value;
                 let finalDate = document.getElementById('dateInput').value;
-                if(finalDate) {
-                    const dp = finalDate.split('-');
-                    finalDate = `${dp[2]}/${dp[1]}/${dp[0]}`; 
-                }
+                // ส่งเป็น YYYY-MM-DD แบบมาตรฐานสากลไปเลย ไม่ต้องสลับรูปแบบใดๆ ทั้งสิ้น
 
                 const payload = {
                     action: editId ? 'editExpense' : 'addExpense',
